@@ -26,41 +26,76 @@ _start:
 	movb $64, 0xB8000
 
 	mov $0, %ecx
-1:	mov %ecx, %eax
+1:
+	# Generate a page table entry pointing to a page in the kernel binary
+	mov %ecx, %eax
 	mov $4096, %edx
 	mul %edx
 	add $PHYSICAL_BASE, %eax
 	or $3, %eax
+
+	# Load the address of the temporary page table and translate it to a physical address
 	mov $_tempPgTable, %edi
+	sub $BASE_DIFF, %edi
+
+	# Save the PTE into an entry in the temporary page table
 	mov %eax, (%edi, %ecx, 4)
+
+	# Load the address of the identity map and translate it to a physical address
 	mov $_tempIdentityMap, %edi
+	sub $BASE_DIFF, %edi
+
+	# Save the PTE into an entry in the identity map
 	mov %eax, 1024(%edi, %ecx, 4)
+
+	# Increment count and loop
 	inc %ecx
 	cmp $IMAGE_SIZE, %ecx
 	jne 1b
 
+	# Load the physical address of the identity map, and generate a PDE
 	mov $_tempIdentityMap, %eax
+	sub $BASE_DIFF, %eax
 	or $3, %eax
-	mov %eax, (_tempPgDir)
 
+	# Load the physical address of the page directory
+	mov $_tempPgDir, %edi
+	sub $BASE_DIFF, %edi
+	
+	# Save the PDE to the first element in the page directory
+	mov %eax, (%edi)
+
+	# Load the physical address of the temporary page table, and generate a PDE
 	mov $_tempPgTable, %eax
+	sub $BASE_DIFF, %eax
 	or $3, %eax
-	mov %eax, (_tempPgDir + 3072)
 
-	mov $_tempPgDir, %eax
-	mov %eax, %cr3
+	# Save the PDE to the entry corresponding to 0xC0000000
+	mov %eax, 3072(%edi)
 
+	# Load the physical address of the page directory into CR3
+	mov %edi, %cr3
+
+	# Enable paging
 	mov %cr0, %eax
 	or $0x80010000, %eax
 	mov %eax, %cr0
+
+	# Jump into mapped kernel binary
 	lea 2f, %eax
 	jmp *%eax
-2:	movl $0, (_tempIdentityMap)
+2:
+	# Delete PDE corresponding to identity map. We shouldn't need it anymore.
+	movl $0, (_tempIdentityMap)
+
+	# Reload page tables
 	mov %cr3, %eax
 	mov %eax, %cr3
 
+	# Initialize stack
 	mov $stackTop, %esp
 
+	# Call main function
 	call main
 
 _err:
