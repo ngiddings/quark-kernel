@@ -1,3 +1,6 @@
-bin/qkernel
-bin/*.o
-bin/*~
+bin/*
+src/*.o
+quark.iso
+src/*~
+*~
+rootfs

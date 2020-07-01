@@ -1,5 +1,5 @@
 .section .multiboot
-.include "multiboot2header.S"
+.include "src/multiboot2header.S"
 
 .section .bss
 
@@ -14,7 +14,7 @@ _tempPgDir:
 _tempIdentityMap:
 .skip 4096
 _tempPgTable:
-.skip 4096
+.skip 8192
 
 .section .text
 .global _start
@@ -73,9 +73,25 @@ _start:
 	# Save the PDE to the entry corresponding to 0xC0000000
 	mov %eax, 3072(%edi)
 
-	# Load the physical address of the page directory into CR3
-	mov %edi, %cr3
+	# Add another PDE for extra mappings the kernel needs
+	add $4096, %eax
+	mov %eax, 3076(%edi)
+	
+	# Set the last entry in the page directory to point to the page directory itself
+	or $3, %edi
+	mov %edi, 4092(%edi)
 
+	# Map VGA memory into the address space
+	mov $_tempPgTable, %edi
+	sub $BASE_DIFF, %edi
+	mov $0xB8003, %eax
+	mov %eax, 4096(%edi)
+
+	# Load the physical address of the page directory into CR3
+	mov $_tempPgDir, %edi
+	sub $BASE_DIFF, %edi
+	mov %edi, %cr3
+	
 	# Enable paging
 	mov %cr0, %eax
 	or $0x80010000, %eax
@@ -95,6 +111,8 @@ _start:
 	# Initialize stack
 	mov $stackTop, %esp
 
+	push %ebx
+	
 	# Call main function
 	call main
 
