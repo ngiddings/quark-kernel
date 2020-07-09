@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 
-namespace qkernel
+namespace kernel
 {
 
 class InterruptDescriptor
@@ -21,7 +21,7 @@ public:
 
     InterruptDescriptor();
 
-    InterruptDescriptor(void* handler, unsigned int type, unsigned int dpl);
+    InterruptDescriptor(void* handler, Type type, unsigned int dpl);
 
     bool present();
 
@@ -30,7 +30,10 @@ public:
     Type type();
 
     void type(Type type);
-    
+
+    unsigned int dpl();
+
+    void dpl(unsigned int dpl);
 
     void* operator=(void* rhs);
     

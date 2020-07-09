@@ -6,7 +6,7 @@
 
 #include "systypes.hpp"
 
-namespace qkernel
+namespace kernel
 {
 
 class MemoryMap

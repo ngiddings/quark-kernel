@@ -1,13 +1,13 @@
 #include "addressspace.hpp"
 
-qkernel::AddressSpace::AddressSpace(MemoryAllocator& malloc)
+kernel::AddressSpace::AddressSpace(MemoryAllocator& malloc)
   : malloc(malloc)
 {
 	this->pageTables = (PageTableEntry*) 0xFFC00000;
 	this->pageDirectory = (PageTableEntry*) 0xFFFFF000;
 }
 
-void* qkernel::AddressSpace::mmap(void* start, size_t length)
+void* kernel::AddressSpace::mmap(void* start, size_t length)
 {
 	size_t tableIndex = (size_t) start / 4096;
 	for(int i = (int) length; i > 0; i -= 4096)
@@ -34,12 +34,12 @@ void* qkernel::AddressSpace::mmap(void* start, size_t length)
 	return start;
 }
 
-void qkernel::AddressSpace::munmap(void* start, size_t length)
+void kernel::AddressSpace::munmap(void* start, size_t length)
 {
 
 }
 
-physaddr_t qkernel::AddressSpace::getPhysicalAddress(void* virtualAddress)
+physaddr_t kernel::AddressSpace::getPhysicalAddress(void* virtualAddress)
     const
 {
 	size_t index = (size_t) virtualAddress / 4096;

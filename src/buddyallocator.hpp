@@ -4,7 +4,7 @@
 #include "memoryallocator.hpp"
 #include "memorymap.hpp"
 
-namespace qkernel
+namespace kernel
 {
 
 class BuddyAllocator : public MemoryAllocator

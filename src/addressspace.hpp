@@ -7,7 +7,7 @@
 #include "pagetableentry.hpp"
 #include "systypes.hpp"
 
-namespace qkernel {
+namespace kernel {
 
 class AddressSpace {
 public:
@@ -37,6 +37,6 @@ private:
 
 };
 
-} /* namespace qkernel */
+} /* namespace kernel */
 
 #endif

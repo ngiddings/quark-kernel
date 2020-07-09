@@ -1,16 +1,16 @@
 #include "systeminfo.hpp"
 
-size_t qkernel::SystemInfo::getLowMemory()
+size_t kernel::SystemInfo::getLowMemory()
 {
 	return lowMemory;
 }
 
-size_t qkernel::SystemInfo::getHighMemory()
+size_t kernel::SystemInfo::getHighMemory()
 {
 	return highMemory;
 }
 
-physaddr_t qkernel::SystemInfo::getKernelBase()
+physaddr_t kernel::SystemInfo::getKernelBase()
 {
 	return kernelBase;
 }

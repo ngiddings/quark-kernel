@@ -1,7 +1,7 @@
 #include <stdbool.h>
 #include "tty.h"
 
-qkernel::TTY::TTY(char* vga)
+kernel::TTY::TTY(char* vga)
 {
 	this->vga = vga;
 	this->cursor = 0;
@@ -9,7 +9,7 @@ qkernel::TTY::TTY(char* vga)
 	this->base = 10;
 }
 
-qkernel::TTY& qkernel::TTY::operator<<(qkernel::TTY::Format fmt)
+kernel::TTY& kernel::TTY::operator<<(kernel::TTY::Format fmt)
 {
 	switch(fmt)
 	{
@@ -25,42 +25,42 @@ qkernel::TTY& qkernel::TTY::operator<<(qkernel::TTY::Format fmt)
 	}
 }
 
-qkernel::TTY& qkernel::TTY::operator<<(const char* str)
+kernel::TTY& kernel::TTY::operator<<(const char* str)
 {
 	return printString(str);
 }
 
-qkernel::TTY& qkernel::TTY::operator<<(unsigned int n)
+kernel::TTY& kernel::TTY::operator<<(unsigned int n)
 {
 	return printNumber(n, base, width);
 }
 
-qkernel::TTY& qkernel::TTY::operator<<(int n)
+kernel::TTY& kernel::TTY::operator<<(int n)
 {
 	return printNumber((unsigned int) n, base, width);
 }
 
-qkernel::TTY& qkernel::TTY::operator<<(void* n)
+kernel::TTY& kernel::TTY::operator<<(void* n)
 {
     return printNumber((unsigned int) n, 16, 8);
 }
 
-qkernel::TTY& qkernel::TTY::operator<<(char c)
+kernel::TTY& kernel::TTY::operator<<(char c)
 {
         return putChar(c);
 }
 
-void qkernel::TTY::setWidth(size_t width)
+void kernel::TTY::setWidth(size_t width)
 {
 	this->width = width;
 }
 
-size_t qkernel::TTY::getWidth()
+size_t kernel::TTY::getWidth()
 {
 	return width;
 }
 
-void qkernel::TTY::clear()
+void kernel::TTY::clear()
 {
 	for(int i = 0; i < 80*25; i++)
 	{
@@ -69,7 +69,7 @@ void qkernel::TTY::clear()
 	cursor = 0;
 }
 
-qkernel::TTY& qkernel::TTY::printNumber(unsigned int n, size_t base,
+kernel::TTY& kernel::TTY::printNumber(unsigned int n, size_t base,
 					size_t width)
 {
 	const char* digits = "0123456789ABCDEF";
@@ -94,7 +94,7 @@ qkernel::TTY& qkernel::TTY::printNumber(unsigned int n, size_t base,
 	return *this;
 }
 
-qkernel::TTY& qkernel::TTY::printString(const char* str)
+kernel::TTY& kernel::TTY::printString(const char* str)
 {
 	while(*str)
 	{
@@ -104,7 +104,7 @@ qkernel::TTY& qkernel::TTY::printString(const char* str)
 	return *this;		     
 }
 
-qkernel::TTY& qkernel::TTY::putChar(char c)
+kernel::TTY& kernel::TTY::putChar(char c)
 {
 	switch(c)
 	{

@@ -1,6 +1,6 @@
 #include "interruptdescriptor.hpp"
 
-qkernel::InterruptDescriptor::InterruptDescriptor()
+kernel::InterruptDescriptor::InterruptDescriptor()
 {
 	this->m_offset1 = 0;
 	this->m_selector = 0;
@@ -12,8 +12,7 @@ qkernel::InterruptDescriptor::InterruptDescriptor()
 	this->m_offset2 = 0;
 }
 
-qkernel::InterruptDescriptor::InterruptDescriptor(void* handler,
-						  Type type, unsigned int dpl)
+kernel::InterruptDescriptor::InterruptDescriptor(void* handler, Type type, unsigned int dpl)
 {
 	uint32_t offset = (uint32_t) handler;
 	this->m_offset1 = (uint16_t) offset;
@@ -23,19 +22,41 @@ qkernel::InterruptDescriptor::InterruptDescriptor(void* handler,
 	this->m_storage = 0;
 	this->m_dpl = dpl;
 	this->m_present = 0;
-	this->m_offset = (uint16_t) (offset >> 16);
+	this->m_offset2 = (uint16_t) (offset >> 16);
 }
 
-bool qkernel::InterruptDescriptor::present()
+bool kernel::InterruptDescriptor::present()
 {
 	return m_present == 1;
 }
-void qkernel::InterruptDescriptor::present(bool present)
+void kernel::InterruptDescriptor::present(bool present)
 {
 	m_present = present ? 1 : 0;
 }
 
-Type qkernel::InterruptDescriptor::type()
+kernel::InterruptDescriptor::Type kernel::InterruptDescriptor::type()
 {
+	return (Type) m_type;
+}
 
+void kernel::InterruptDescriptor::type(kernel::InterruptDescriptor::Type type)
+{
+	m_type = (unsigned int) type;
+}
+
+unsigned int kernel::InterruptDescriptor::dpl()
+{
+	return m_dpl;
+}
+
+void kernel::InterruptDescriptor::dpl(unsigned int dpl)
+{
+	m_dpl = dpl;
+}
+
+void* kernel::InterruptDescriptor::operator=(void* rhs)
+{
+	uint32_t offset = (uint32_t) rhs;
+	m_offset1 = (uint16_t) offset;
+	m_offset2 = (uint16_t) (offset >> 16);
 }

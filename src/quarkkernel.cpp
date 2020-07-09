@@ -8,11 +8,7 @@
 #include "addressspace.hpp"
 #include "tty.h"
 
-#if __STDC_HOSTED__ == 1 || __i686__ != 1
-#error "ERROR: This program must be compiled for a freestanding environment, and currently only supports the i686 target."
-#endif
-
-using namespace qkernel;
+using namespace kernel;
 
 extern SystemInfo system_info;
 extern MemoryMap::Region memory_map;

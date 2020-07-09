@@ -4,7 +4,7 @@
 #include <stddef.h>
 #include "systypes.hpp"
 
-namespace qkernel
+namespace kernel
 {
 
 /**

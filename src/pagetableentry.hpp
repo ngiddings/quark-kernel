@@ -11,7 +11,7 @@
 #include <stdint.h>
 #include "systypes.hpp"
 
-namespace qkernel {
+namespace kernel {
 
 class PageTableEntry {
 public:

@@ -3,7 +3,7 @@
 
 #include <stddef.h>
 
-namespace qkernel
+namespace kernel
 {
 
 class TTY

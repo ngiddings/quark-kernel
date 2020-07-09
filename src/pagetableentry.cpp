@@ -7,7 +7,7 @@
 
 #include "pagetableentry.hpp"
 
-namespace qkernel {
+namespace kernel {
 
 static_assert(sizeof(PageTableEntry) == 4, "PTE structure is the wrong size!");
 
