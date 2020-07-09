@@ -1,7 +1,8 @@
 #ifndef BUDDYALLOCATOR_H_
 #define BUDDYALLOCATOR_H_
 
-#include "memoryallocator.h"
+#include "memoryallocator.hpp"
+#include "memorymap.hpp"
 
 namespace qkernel
 {
@@ -12,18 +13,23 @@ public:
 
 	BuddyAllocator();
 
-	BuddyAllocator(void* heapLocation, char* bitmap, size_t blockSize, size_t blockCount, size_t treeHeight);
+	BuddyAllocator(MemoryMap& memmap, char* bitmap, size_t blockCount,
+		       size_t treeHeight);
+
+	BuddyAllocator(char* bitmap, size_t blockSize, size_t blockCount,
+		       size_t treeHeight);
+    
+	/**
+	 * Allocate a block of memory containing at least 'size' bytes. 
+	 * Rounds up to the nearest power of 2 times the size of a block.
+	 */
+	virtual physaddr_t allocate(size_t size);
 
 	/**
-	 * Allocate a block of memory containing at least 'size' bytes. Rounds up to the nearest
-	 * power of 2 times the size of a block.
+	 * Free the region of memory starting at 'location' and containing 
+	 * 'size' bytes.
 	 */
-	virtual void* allocate(size_t size);
-
-	/**
-	 * Free the region of memory starting at 'location' and containing 'size' bytes.
-	 */
-	virtual void free(void* location, size_t size);
+	virtual void free(physaddr_t location, size_t size);
 
 	/**
 	 * @returns the total number of free blocks of memory.
@@ -31,8 +37,8 @@ public:
 	virtual size_t freeBlocks() const;
 
 	/**
-	 * @returns the size in blocks of the largest possible allocation that will not
-	 * fail due to lack of memory.
+	 * @returns the size in blocks of the largest possible allocation that 
+	 * will not fail due to lack of memory.
 	 */
 	virtual size_t maxAllocationSize() const;
 
@@ -42,20 +48,14 @@ public:
 	virtual size_t getBlockSize() const;
 
 	/**
-	 * @returns the total number of blocks managed by this memory allocator.
+	 * @returns the total number of blocks managed by this memory 
+	 * allocator.
 	 */
-	virtual size_t getHeapSize() const;
-
-	/**
-	 * @returns a pointer to the beginning of the heap managed by this memory allocator.
-	 */
-	virtual void* getHeapLocation() const;
+	virtual size_t getMemorySize() const;
 
 private:
 
 	static const size_t INVALID = (size_t) -1;
-
-	void* heapLocation;
 
 	char* bitmap;
 
@@ -77,9 +77,9 @@ private:
 
 	size_t getChild(size_t index);
 
-	void* nodeToAddress(size_t height, size_t index) const;
+	physaddr_t nodeToAddress(size_t height, size_t index) const;
 
-	size_t addressToNode(size_t height, void* location) const;
+	size_t addressToNode(size_t height, physaddr_t location) const;
 
 	void reserveNode(size_t height, size_t index);
 

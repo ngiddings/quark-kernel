@@ -5,7 +5,7 @@
  *      Author: nathan
  */
 
-#include "pagetableentry.h"
+#include "pagetableentry.hpp"
 
 namespace qkernel {
 
@@ -26,102 +26,108 @@ PageTableEntry::PageTableEntry() {
 	this->physicalAddress = 0;
 }
 
-uint32_t PageTableEntry::getAccessed() const {
-	return accessed;
+bool PageTableEntry::getAccessed() const {
+	return accessed == 1;
 }
 
-uint32_t PageTableEntry::getCacheDisable() const {
-	return cacheDisable;
-}
-
-void PageTableEntry::setCacheDisable(uint32_t cacheDisable)
+bool PageTableEntry::getCacheDisable() const
 {
-	this->cacheDisable = cacheDisable;
+	return cacheDisable == 1;
 }
 
-uint32_t PageTableEntry::getDirty() const {
-	return dirty;
-}
-
-uint32_t PageTableEntry::getGlobal() const {
-	return global;
-}
-
-void PageTableEntry::setGlobal(uint32_t global)
+void PageTableEntry::setCacheDisable(bool cacheDisable)
 {
-	this->global = global;
+	this->cacheDisable = cacheDisable ? 1 : 0;
 }
 
-uint32_t PageTableEntry::getPat() const {
-	return pat;
-}
-
-void PageTableEntry::setPat(uint32_t pat)
+bool PageTableEntry::getDirty() const
 {
-	this->pat = pat;
+	return dirty == 1;
 }
 
-uint32_t PageTableEntry::getPhysicalAddress() const {
-	uint32_t physicalAddress = this->physicalAddress;
+bool PageTableEntry::getGlobal() const
+{
+	return global == 1;
+}
+
+void PageTableEntry::setGlobal(bool global)
+{
+	this->global = global ? 1 : 0;
+}
+
+bool PageTableEntry::getPat() const
+{
+	return pat == 1;
+}
+
+void PageTableEntry::setPat(bool pat)
+{
+	this->pat = pat ? 1 : 0;
+}
+
+physaddr_t PageTableEntry::getPhysicalAddress() const {
+	physaddr_t physicalAddress = this->physicalAddress;
 	return physicalAddress << 12;
 }
 
-uint32_t PageTableEntry::setPhysicalAddress(uint32_t physicalAddress)
+physaddr_t PageTableEntry::setPhysicalAddress(physaddr_t physicalAddress)
 {
-	if(physicalAddress % 4096 == 0)
-	{
-		this->physicalAddress = physicalAddress >> 12;
-		return this->physicalAddress;
-	}
-	else
-	{
-		this->physicalAddress = !physicalAddress;
-		return this->physicalAddress;
-	}
+	this->physicalAddress = physicalAddress >> 12;
+	return this->physicalAddress << 12;
 }
 
-uint32_t PageTableEntry::getPresent() const {
-	return present;
-}
-
-void PageTableEntry::setPresent(uint32_t present)
+bool PageTableEntry::getPresent() const
 {
-	this->present = present;
+	return present == 1;
 }
 
-uint32_t PageTableEntry::getRw() const {
-	return rw;
-}
-
-void PageTableEntry::setRw(uint32_t rw)
+void PageTableEntry::setPresent(bool present)
 {
-	this->rw = rw;
+	this->present = present ? 1 : 0;
 }
 
-uint32_t PageTableEntry::getUsermode() const {
-	return usermode;
-}
-
-void PageTableEntry::setUsermode(uint32_t usermode)
+bool PageTableEntry::getRw() const
 {
-	this->usermode = usermode;
+	return rw == 1;
 }
 
-uint32_t PageTableEntry::getWriteThrough() const {
-	return writeThrough;
-}
-
-uint32_t PageTableEntry::getShared() const {
-	return shared;
-}
-
-void PageTableEntry::setShared(uint32_t shared) {
-	this->shared = shared;
-}
-
-void PageTableEntry::setWriteThrough(uint32_t writeThrough)
+void PageTableEntry::setRw(bool rw)
 {
-	this->writeThrough = writeThrough;
+	this->rw = rw ? 1 : 0;
+}
+
+bool PageTableEntry::getUsermode() const
+{
+	return usermode == 1;
+}
+
+void PageTableEntry::setUsermode(bool usermode)
+{
+	this->usermode = usermode ? 1 : 0;
+}
+
+bool PageTableEntry::getWriteThrough() const {
+	return writeThrough == 1;
+}
+
+bool PageTableEntry::getShared() const
+{
+	return shared == 1;
+}
+
+void PageTableEntry::setShared(bool shared)
+{
+	this->shared = shared ? 1 : 0;
+}
+
+void PageTableEntry::setWriteThrough(bool writeThrough)
+{
+	this->writeThrough = writeThrough ? 1 : 0;
+}
+
+physaddr_t PageTableEntry::operator=(physaddr_t rhs)
+{
+	return setPhysicalAddress(rhs);
 }
 
 } /* namespace qkernel */

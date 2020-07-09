@@ -4,3 +4,4 @@ quark.iso
 src/*~
 *~
 rootfs
+test/

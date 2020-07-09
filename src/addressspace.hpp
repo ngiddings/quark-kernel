@@ -3,8 +3,9 @@
 
 #include <stddef.h>
 
-#include "memoryallocator.h"
-#include "pagetableentry.h"
+#include "memoryallocator.hpp"
+#include "pagetableentry.hpp"
+#include "systypes.hpp"
 
 namespace qkernel {
 
@@ -17,7 +18,7 @@ public:
 
 	void munmap(void* start, size_t length);
 
-	void* getPhysicalAddress(void* virtualAddress) const;
+	physaddr_t getPhysicalAddress(void* virtualAddress) const;
     
 private:
 
@@ -28,6 +29,11 @@ private:
 	 * The last table represents the page directory.
 	 */
 	PageTableEntry* pageTables;
+
+	/**
+	 * Array of 1024 PDEs, located at the end of the pageTables array
+	 */
+	PageTableEntry* pageDirectory;
 
 };
 

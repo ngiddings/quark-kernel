@@ -5,76 +5,59 @@ qkernel::TTY::TTY(char* vga)
 {
 	this->vga = vga;
 	this->cursor = 0;
+	this->width = 0;
+	this->base = 10;
+}
+
+qkernel::TTY& qkernel::TTY::operator<<(qkernel::TTY::Format fmt)
+{
+	switch(fmt)
+	{
+	case Binary:
+		base = 2;
+		break;
+	case Decimal:
+		base = 10;
+		break;
+	case Hex:
+		base = 16;
+		break;
+	}
 }
 
 qkernel::TTY& qkernel::TTY::operator<<(const char* str)
 {
-	while(*str)
-	{
-		switch(*str)
-		{
-		case '\n':
-			cursor = (cursor + 80) - (cursor % 80);
-			break;
-		case '\t':
-			cursor = (cursor + 4) - (cursor % 4);
-			break;
-		case '\r':
-			cursor -= cursor % 160;
-			break;
-		default:
-			vga[cursor * 2] = *str;
-			cursor++;
-		}
-		str++;
-	}
-	return *this;
+	return printString(str);
+}
+
+qkernel::TTY& qkernel::TTY::operator<<(unsigned int n)
+{
+	return printNumber(n, base, width);
 }
 
 qkernel::TTY& qkernel::TTY::operator<<(int n)
 {
-	if(n == 0)
-	{
-		operator<<('0');
-		return *this;
-	}
+	return printNumber((unsigned int) n, base, width);
+}
 
-	int sign = n > 0 ? 1 : -1;
-	if(sign == -1) operator<<('-');
-
-	int quotient;
-	bool showZeros = false;
-	for(int divisor = 1000000000; divisor > 0; divisor /= 10)
-	{
-		quotient = n / divisor;
-		char digit = (char) (sign * (quotient % 10) + '0');
-		if(digit != '0' || showZeros)
-		{
-			operator<<(digit);
-			showZeros = true;
-		}
-	}
-	return *this;
+qkernel::TTY& qkernel::TTY::operator<<(void* n)
+{
+    return printNumber((unsigned int) n, 16, 8);
 }
 
 qkernel::TTY& qkernel::TTY::operator<<(char c)
 {
-	switch(c)
-	{
-	case '\n':
-		cursor = (cursor + 160) - (cursor % 160);
-		break;
-	case '\t':
-		cursor = (cursor + 8) - (cursor % 8);
-		break;
-	case '\r':
-		cursor -= cursor % 160;
-		break;
-	default:
-		vga[cursor * 2] = c;
-	}
-	cursor++;
-	return *this;
+        return putChar(c);
+}
+
+void qkernel::TTY::setWidth(size_t width)
+{
+	this->width = width;
+}
+
+size_t qkernel::TTY::getWidth()
+{
+	return width;
 }
 
 void qkernel::TTY::clear()
@@ -86,40 +69,57 @@ void qkernel::TTY::clear()
 	cursor = 0;
 }
 
-qkernel::TTY& qkernel::TTY::printNumber(unsigned int n, int base = 10, bool sign = true, bool leadingZeros = false)
+qkernel::TTY& qkernel::TTY::printNumber(unsigned int n, size_t base,
+					size_t width)
 {
-	if(n == 0)
+	const char* digits = "0123456789ABCDEF";
+	char str[33];
+	size_t i = 1;
+	do
 	{
-		operator<<('0');
-		return *this;
+		str[i] = digits[n % base];
+		n /= base;
+		i++;
+	} while(n > 0);
+	while(i <= width)
+	{
+		str[i] = '0';
+		i++;
 	}
-
-	if(sign)
+	str[0] = '\0';
+	for(char* s = str + (i - 1); *s; s--)
 	{
-		int nSig = (int) n;
-		int sign = nSig > 0 ? 1 : -1;
-		if(sign == -1)
-		{
-			n = (unsigned int) (nSig * sign);
-			operator<<('-');
-		}
+		putChar(*s);
 	}
+	return *this;
+}
 
-	int initDivisor = (base == 10) ? 1000000000 :
-		((base == 16) ? 0x10000000 :
-		 ((base == 8) ? 0x40000000 : 0));
-	
-	int quotient;
-	bool showZeros = leadingZeros;
-	for(int divisor = 1000000000; divisor > 0; divisor /= base)
+qkernel::TTY& qkernel::TTY::printString(const char* str)
+{
+	while(*str)
 	{
-		quotient = n / divisor;
-		char digit = (char) (sign * (quotient % base) + '0');
-		if(digit != '0' || showZeros)
-		{
-			operator<<(digit);
-			showZeros = true;
-		}
+		putChar(*str);
+		str++;
+	}
+	return *this;		     
+}
+
+qkernel::TTY& qkernel::TTY::putChar(char c)
+{
+	switch(c)
+	{
+	case '\n':
+		cursor = (cursor + 80) - (cursor % 80);
+		break;
+	case '\t':
+		cursor = (cursor + 4) - (cursor % 4);
+		break;
+	case '\r':
+		cursor -= cursor % 160;
+		break;
+	default:
+		vga[cursor * 2] = c;
+		cursor++;
 	}
 	return *this;
 }

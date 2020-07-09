@@ -1,5 +1,7 @@
-#include "buddyallocator.h"
+#include "buddyallocator.hpp"
 #include "math.h"
+#include "systypes.hpp"
+#include "memorymap.hpp"
 
 #define roundUp(n, m) ((n % m == 0) ? n : (n + m - (n % m)))
 
@@ -8,9 +10,41 @@ qkernel::BuddyAllocator::BuddyAllocator()
 
 }
 
-qkernel::BuddyAllocator::BuddyAllocator(void* heapLocation, char* bitmap, size_t blockSize, size_t blockCount, size_t treeHeight)
+qkernel::BuddyAllocator::BuddyAllocator(qkernel::MemoryMap& memmap,
+					char* bitmap, size_t blockCount,
+					size_t treeHeight)
 {
-	this->heapLocation = heapLocation;
+	this->bitmap = bitmap;
+	this->blockSize = 4096;
+	this->blockCount = blockCount;
+	this->treeHeight = treeHeight;
+	for(size_t i = 0; i <= treeHeight; i++)
+	{
+		for(size_t j = 0; j < (blockCount >> i); j++)
+		{
+			reserveNode(i, j);
+		}
+	}
+	physaddr_t location = 0x100000;
+	for(size_t i = 0; i < memmap.size() && memmap[i].getSize() > 0; i++)
+	{
+		if(memmap[i].getType() != qkernel::MemoryMap::AVAILABLE)
+			continue;
+		if(memmap[i].getLocation() > location)
+			location = roundUp(memmap[i].getLocation(), 4096);
+		while(memmap[i].contains(location, 4096))
+		{
+			freeNode(0, location / 4096);
+			if(isFree(0, getBuddy(location / 4096)))
+				merge(0, location / 4096);
+			location += 4096;
+		}
+	}
+}
+
+qkernel::BuddyAllocator::BuddyAllocator(char* bitmap, size_t blockSize,
+					size_t blockCount, size_t treeHeight)
+{
 	this->bitmap = bitmap;
 	this->blockSize = blockSize;
 	this->blockCount = blockCount;
@@ -27,7 +61,7 @@ qkernel::BuddyAllocator::BuddyAllocator(void* heapLocation, char* bitmap, size_t
 	}
 }
 
-void* qkernel::BuddyAllocator::allocate(size_t size)
+physaddr_t qkernel::BuddyAllocator::allocate(size_t size)
 {
 	size_t height = ilog2(roundUp(size, blockSize) / blockSize, true);
 	if(height > treeHeight) // Requested block size is greater than maximum
@@ -49,7 +83,7 @@ void* qkernel::BuddyAllocator::allocate(size_t size)
 	}
 }
 
-void qkernel::BuddyAllocator::free(void* location, size_t size)
+void qkernel::BuddyAllocator::free(physaddr_t location, size_t size)
 {
 	size_t height = ilog2(roundUp(size, blockSize) / blockSize, true);
 	if(height <= treeHeight)
@@ -66,7 +100,7 @@ void qkernel::BuddyAllocator::free(void* location, size_t size)
 size_t qkernel::BuddyAllocator::freeBlocks() const
 {
 	size_t count = 0;
-	for(int j = 0; j < blockCount; j++)
+	for(size_t j = 0; j < blockCount; j++)
 	{
 		if(isFree(0, j))
 		{
@@ -78,9 +112,9 @@ size_t qkernel::BuddyAllocator::freeBlocks() const
 
 size_t qkernel::BuddyAllocator::maxAllocationSize() const
 {
-	for(int i = treeHeight; i >= 0; i--)
+	for(size_t i = treeHeight; i >= 0; i--)
 	{
-		for(int j = 0; j < (blockCount >> i); j++)
+		for(size_t j = 0; j < (blockCount >> i); j++)
 		{
 			if(isFree(i, j))
 			{
@@ -96,19 +130,14 @@ size_t qkernel::BuddyAllocator::getBlockSize() const
 	return blockSize;
 }
 
-size_t qkernel::BuddyAllocator::getHeapSize() const
+size_t qkernel::BuddyAllocator::getMemorySize() const
 {
 	return blockCount;
 }
 
-void* qkernel::BuddyAllocator::getHeapLocation() const
-{
-	return heapLocation;
-}
-
 size_t qkernel::BuddyAllocator::findFreeBlock(size_t height)
 {
-	for(int i = 0; i < (blockCount >> height); i++)
+	for(size_t i = 0; i < (blockCount >> height); i++)
 	{
 		if(isFree(height, i))
 		{
@@ -179,35 +208,38 @@ size_t qkernel::BuddyAllocator::getChild(size_t index)
 	return index * 2;
 }
 
-void* qkernel::BuddyAllocator::nodeToAddress(size_t height, size_t index) const
+physaddr_t qkernel::BuddyAllocator::nodeToAddress(size_t height, size_t index)
+    const
 {
-	char* base = (char*) heapLocation;
-	return reinterpret_cast<void*>(base + index * (blockSize << height));
+	return index * (blockSize << height);
 }
 
-size_t qkernel::BuddyAllocator::addressToNode(size_t height, void* location) const
+size_t qkernel::BuddyAllocator::addressToNode(size_t height,
+					      physaddr_t location) const
 {
-	size_t offset = (char*) location - (char*) heapLocation;
-	return offset / (blockSize << height);
+	return location / (blockSize << height);
 }
 
 void qkernel::BuddyAllocator::reserveNode(size_t height, size_t index)
 {
-	size_t bit = (height == 0) ? 0 : ((blockCount * 2) - (blockCount >> (height - 1)));
+	size_t bit = (height == 0) ? 0
+	    : ((blockCount * 2) - (blockCount >> (height - 1)));
 	bit += index;
 	bitmap[bit / 8] |= 1 << (bit % 8);
 }
 
 void qkernel::BuddyAllocator::freeNode(size_t height, size_t index)
 {
-	size_t bit = (height == 0) ? 0 : ((blockCount * 2) - (blockCount >> (height - 1)));
+	size_t bit = (height == 0) ? 0
+	    : ((blockCount * 2) - (blockCount >> (height - 1)));
 	bit += index;
 	bitmap[bit / 8] &= ~(1 << (bit % 8));
 }
 
 bool qkernel::BuddyAllocator::isFree(size_t height, size_t index) const
 {
-	size_t bit = (height == 0) ? 0 : ((blockCount * 2) - (blockCount >> (height - 1)));
+	size_t bit = (height == 0) ? 0
+	    : ((blockCount * 2) - (blockCount >> (height - 1)));
 	bit += index;
 	char data = bitmap[bit / 8] & (1 << (bit % 8));
 	if(data == 0)
