@@ -1,5 +1,5 @@
 objs = 	src/addressspace.o src/tty.o src/buddyallocator.o src/math.o \
-	src/cstring.o src/error.o src/pagetableentry.o src/multiboot2header.o\
+	src/cstring.o src/pagetableentry.o src/multiboot2header.o \
 	src/systeminfo.o src/memorymap.o src/entry.o src/quarkkernel.o
 link_script = src/linker.ld
 quark_bin = qkernel
@@ -19,7 +19,7 @@ $(quark_img): bin/$(quark_bin) rootfs/boot/grub/grub.cfg
 
 bin/$(quark_bin): $(objs) $(link_script)
 	mkdir -p bin/
-	$(CXX) -o $@ -T $(link_script) -ffreestanding -nostdlib -O0 $^ -lgcc
+	$(CXX) -o $@ -T $(link_script) -ffreestanding -nostdlib -O0 $(objs) -lgcc
 
 .PHONY: clean
 clean:
