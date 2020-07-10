@@ -12,11 +12,11 @@ public:
 
     enum Type
     {
-	TASK32 = 5,
-	TRAP32 = 15,
-	INT32 = 14,
-	TRAP16 = 7,
-	INT16 = 6
+        TASK32 = 5,
+        TRAP32 = 15,
+        INT32 = 14,
+        TRAP16 = 7,
+        INT16 = 6
     };
 
     InterruptDescriptor();

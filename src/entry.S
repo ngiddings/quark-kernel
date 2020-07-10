@@ -2,7 +2,23 @@
 .include "src/multiboot2header.S"
 
 .section .rodata
-	
+
+gdt:
+.long 0, 0
+.short 0xFFFF
+.short 0x0000
+.short 0x9A00
+.short 0x00CF
+.short 0xFFFF
+.short 0x0000
+.short 0x9200
+.short 0x00CF
+
+gdt_info:
+.short 23
+.long gdt
+
+.align 16
 idt_info:
 .short idt_end - idt - 1
 .long idt
@@ -199,8 +215,17 @@ s_end:
 
 	# Initialize stack
 	mov $stackTop, %esp
-
+	lgdt gdt_info
 	lidt idt_info
+
+	jmp $8, $.ldcs
+.ldcs:	
+	mov $16, %ax
+	mov %ax, %ds
+	mov %ax, %es
+	mov %ax, %gs
+	mov %ax, %fs
+	mov %ax, %ss
 
 	mov $_bootCmdLine, %eax
 	push %eax

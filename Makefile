@@ -1,6 +1,7 @@
-objs = 	src/addressspace.o src/tty.o src/buddyallocator.o src/math.o \
+objs = src/addressspace.o src/tty.o src/buddyallocator.o src/math.o \
 	src/cstring.o src/pagetableentry.o src/multiboot2header.o \
-	src/systeminfo.o src/memorymap.o src/entry.o src/quarkkernel.o
+	src/systeminfo.o src/memorymap.o src/interruptdescriptor.o \
+	src/inthandlers.o src/pio.o src/entry.o src/quarkkernel.o
 link_script = src/linker.ld
 quark_bin = qkernel
 quark_img = quark.iso
@@ -8,7 +9,7 @@ quark_img = quark.iso
 CXX = i686-elf-g++
 CC = i686-elf-gcc
 
-CPPFLAGS = -ffreestanding -O2 -Wall -fno-exceptions -fno-rtti -ggdb
+CPPFLAGS = -ffreestanding -mgeneral-regs-only -O0 -Wall -fno-exceptions -fno-rtti -ggdb
 
 .PHONY: all
 all: $(quark_img)

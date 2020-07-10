@@ -16,13 +16,13 @@ kernel::InterruptDescriptor::InterruptDescriptor(void* handler, Type type, unsig
 {
 	uint32_t offset = (uint32_t) handler;
 	this->m_offset1 = (uint16_t) offset;
-	this->m_selector = 1;
+	this->m_selector = 8;
 	this->m_zero = 0;
 	this->m_type = (uint16_t) type;
 	this->m_storage = 0;
 	this->m_dpl = dpl;
-	this->m_present = 0;
-	this->m_offset2 = (uint16_t) (offset >> 16);
+	this->m_present = 1;
+	this->m_offset2 = offset >> 16;
 }
 
 bool kernel::InterruptDescriptor::present()
@@ -58,5 +58,5 @@ void* kernel::InterruptDescriptor::operator=(void* rhs)
 {
 	uint32_t offset = (uint32_t) rhs;
 	m_offset1 = (uint16_t) offset;
-	m_offset2 = (uint16_t) (offset >> 16);
+	m_offset2 = (offset >> 16);
 }
