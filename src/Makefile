@@ -1,16 +1,18 @@
-objs = math.o cstring.o error.o pagetableentry.o physicalmemoryallocator.o multiboot2header.o entry.o quarkkernel.o
-link_script = linker.ld
-quark_bin = qkernel
+objs = addressspace.o tty.o buddyallocator.o math.o cstring.o pagetableentry.o multiboot2header.o systeminfo.o memorymap.o pio.o entry.o quarkkernel.o
 
 CXX = i686-elf-g++
 CC = i686-elf-gcc
 
-CPPFLAGS += -ffreestanding -O2 -Wall -Wextra -fno-exceptions -fno-rtti
+CXXFLAGS = -ffreestanding -mgeneral-regs-only -O0 -Wall -fno-exceptions -fno-rtti -ggdb
+LDFLAGS = -T linker.ld -lgcc -nostdlib
 
-all: $(objs)
-	echo $(PATH)
-	i686-elf-g++ -o $(quark_bin) -T $(link_script) -ffreestanding -nostdlib -O2 $(objs) -lgcc
+quark-kernel: $(objs) linker.ld interrupts/libinterrupts.a
+	$(CXX) -o $@ $(LDFLAGS) interrupts/libinterrupts.a $(objs)
 
+interrupts/libinterrupts.a:
+	make -C interrupts CXX="$(CXX)" CC="$(CC)" CXXFLAGS="$(CXXFLAGS)"
+
+.PHONY: clean
 clean:
-	rm *.o
-	rm -f $(quark_bin)
+	make -C interrupts clean
+	rm -f $(objs) quark-kernel
