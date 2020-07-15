@@ -1,27 +1,14 @@
-objs = src/addressspace.o src/tty.o src/buddyallocator.o src/math.o \
-	src/cstring.o src/pagetableentry.o src/multiboot2header.o \
-	src/systeminfo.o src/memorymap.o src/interruptdescriptor.o \
-	src/inthandlers.o src/pio.o src/entry.o src/quarkkernel.o
-link_script = src/linker.ld
-quark_bin = qkernel
-quark_img = quark.iso
-
-CXX = i686-elf-g++
-CC = i686-elf-gcc
-
-CPPFLAGS = -ffreestanding -mgeneral-regs-only -O0 -Wall -fno-exceptions -fno-rtti -ggdb
-
 .PHONY: all
-all: $(quark_img)
+all: quark.iso
 
-$(quark_img): bin/$(quark_bin) rootfs/boot/grub/grub.cfg
-	cp bin/$(quark_bin) rootfs/apps
+quark.iso: src/quark-kernel
+	cp src/quark-kernel rootfs/apps
 	grub-mkrescue -o $@ rootfs
 
-bin/$(quark_bin): $(objs) $(link_script)
-	mkdir -p bin/
-	$(CXX) -o $@ -T $(link_script) -ffreestanding -nostdlib -O0 $(objs) -lgcc
+src/quark-kernel:
+	make -C src
 
 .PHONY: clean
 clean:
-	rm -f $(objs) bin/$(quark_bin) $(quark_img)
+	make -C src clean
+	rm -f quark.iso

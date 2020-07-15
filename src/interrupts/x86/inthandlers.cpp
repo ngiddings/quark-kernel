@@ -9,7 +9,6 @@ void divisionByZero(void* frame)
     display += 2;
 }
 
-
 __attribute__ ((interrupt))
 void gpFaultHandler(void* frame, unsigned int error)
 {

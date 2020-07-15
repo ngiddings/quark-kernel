@@ -1,5 +1,5 @@
 .section .multiboot
-.include "src/multiboot2header.S"
+.include "multiboot2header.S"
 
 .section .rodata
 
