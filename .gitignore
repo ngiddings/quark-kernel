@@ -1,5 +1,7 @@
 quark.iso
 quark-kernel
+*.a
+*.o
 
 autom4te.cache/
 .deps
@@ -18,9 +20,7 @@ Makefile.in
 missing
 stamp-h1
 *.Po
-*.a
-*.o
 *~
 
-rootfs/
+rootfs/apps
 test/
