@@ -9,6 +9,7 @@
 #include "pio.hpp"
 #include "tty.hpp"
 #include "util.hpp"
+#include "config.h"
 
 using namespace kernel;
 
@@ -18,7 +19,7 @@ extern MemoryMap::Region memory_map;
 void main(char* cmdline)
 {
     TTY tty((char*) 0xC00B8000);
-	tty << "--Quark Kernel--\n";
+	tty << PACKAGE_STRING << '\n';
 	tty << "Low memory: \t" << (int) system_info.getLowMemory() << " KiB\n";
 	tty << "High memory:\t" << (int) system_info.getHighMemory() << " KiB\n";
 	tty << "Type\t\tLocation\t\tSize\n";
