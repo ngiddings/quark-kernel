@@ -14,9 +14,9 @@ public:
     
 	AddressSpace(MemoryAllocator& malloc);
 
-	void* mmap(void* start, size_t length);
+	int mmap(void* start, size_t length);
 
-	void munmap(void* start, size_t length);
+	int munmap(void* start, size_t length);
 
 	physaddr_t getPhysicalAddress(void* virtualAddress) const;
     

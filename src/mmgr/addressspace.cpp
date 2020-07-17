@@ -7,7 +7,7 @@ kernel::AddressSpace::AddressSpace(MemoryAllocator& malloc)
 	this->pageDirectory = (PageTableEntry*) 0xFFFFF000;
 }
 
-void* kernel::AddressSpace::mmap(void* start, size_t length)
+int kernel::AddressSpace::mmap(void* start, size_t length)
 {
 	size_t tableIndex = (size_t) start / 4096;
 	for(int i = (int) length; i > 0; i -= 4096)
@@ -16,6 +16,8 @@ void* kernel::AddressSpace::mmap(void* start, size_t length)
 		if(!pageDirectory[directoryIndex].getPresent())
 		{
 			physaddr_t newPT = malloc.allocate(4096);
+			if(newPT == 0)
+				return -1;
 			pageDirectory[directoryIndex] = newPT;
 			pageDirectory[directoryIndex].setPresent(true);
 			pageDirectory[directoryIndex].setUsermode(false);
@@ -31,12 +33,27 @@ void* kernel::AddressSpace::mmap(void* start, size_t length)
 		}
 		tableIndex++;
 	}
-	return start;
+	return 0;
 }
 
-void kernel::AddressSpace::munmap(void* start, size_t length)
+int kernel::AddressSpace::munmap(void* start, size_t length)
 {
-
+	if((size_t) start % 4096 != 0)
+		return -1;
+	size_t tableIndex = (size_t) start / 4096;
+	for(int i = (int) length; i > 0; i -= 4096)
+	{
+		size_t directoryIndex = tableIndex / 1024;
+		if(pageDirectory[directoryIndex].getPresent())
+		{
+			pageDirectory[directoryIndex] = 0;
+			pageDirectory[directoryIndex].setPresent(false);
+			pageDirectory[directoryIndex].setUsermode(false);
+			pageDirectory[directoryIndex].setRw(false);
+		}
+		tableIndex++;
+	}
+	return 0;
 }
 
 physaddr_t kernel::AddressSpace::getPhysicalAddress(void* virtualAddress)
