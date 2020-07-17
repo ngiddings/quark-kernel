@@ -4,8 +4,8 @@
 #include <stddef.h>
 
 #include "memoryallocator.hpp"
-#include "pagetableentry.hpp"
-#include "systypes.hpp"
+#include "x86/pagetableentry.hpp"
+#include "types.hpp"
 
 namespace kernel {
 

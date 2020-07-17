@@ -1,5 +1,5 @@
 #include <stdbool.h>
-#include "tty.h"
+#include "tty.hpp"
 
 kernel::TTY::TTY(char* vga)
 {

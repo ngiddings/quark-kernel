@@ -1,9 +1,25 @@
 #include "buddyallocator.hpp"
-#include "math.h"
-#include "systypes.hpp"
+#include "types.hpp"
 #include "memorymap.hpp"
 
 #define roundUp(n, m) ((n % m == 0) ? n : (n + m - (n % m)))
+
+uint32_t ilog2(uint32_t n, bool roundUp)
+{
+	uint32_t m = n;
+	uint32_t count = 0;
+	bool isPowerOfTwo = true;
+	while(m)
+	{
+		if((m & 1) == 1 && m > 1)
+		{
+			isPowerOfTwo = false;
+		}
+		count++;
+		m >>= 1;
+	}
+	return count - (isPowerOfTwo ? 1 : (roundUp ? 0 : 1));
+}
 
 kernel::BuddyAllocator::BuddyAllocator()
 {

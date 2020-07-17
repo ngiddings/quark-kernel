@@ -9,7 +9,7 @@
 #define SRC_PAGETABLEENTRY_H_
 
 #include <stdint.h>
-#include "systypes.hpp"
+#include "../types.hpp"
 
 namespace kernel {
 

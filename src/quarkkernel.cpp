@@ -3,21 +3,17 @@
 
 #include "systypes.hpp"
 #include "systeminfo.hpp"
-#include "memorymap.hpp"
-#include "buddyallocator.hpp"
-#include "addressspace.hpp"
+#include "mmgr/memorymap.hpp"
+#include "mmgr/buddyallocator.hpp"
+#include "mmgr/addressspace.hpp"
 #include "pio.hpp"
-#include "tty.h"
+#include "tty.hpp"
+#include "util.hpp"
 
 using namespace kernel;
 
 extern SystemInfo system_info;
 extern MemoryMap::Region memory_map;
-
-extern "C" void __cxa_pure_virtual()
-{
-
-}
 
 void main(char* cmdline)
 {

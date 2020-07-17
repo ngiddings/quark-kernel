@@ -4,7 +4,7 @@
 #include <stdint.h>
 #include <stddef.h>
 
-#include "systypes.hpp"
+#include "types.hpp"
 
 namespace kernel
 {

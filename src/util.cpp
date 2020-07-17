@@ -1,13 +1,6 @@
-/*
- * cstring.cpp
- *
- *  Created on: Jun 13, 2019
- *      Author: nathan
- */
-
 #include <stdint.h>
-#include <stddef.h>
-#include "cstring.h"
+
+#include "util.hpp"
 
 void* memcpy(void* destination, const void* source, size_t num)
 {
@@ -82,4 +75,7 @@ void* memset (void* ptr, int value, size_t num)
 	return ptr;
 }
 
-
+void __cxa_pure_virtual()
+{
+    // do nothing
+}
