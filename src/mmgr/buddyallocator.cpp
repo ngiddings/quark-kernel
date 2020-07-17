@@ -82,14 +82,14 @@ physaddr_t kernel::BuddyAllocator::allocate(size_t size)
 	size_t height = ilog2(roundUp(size, blockSize) / blockSize, true);
 	if(height > treeHeight) // Requested block size is greater than maximum
 	{
-		return NULL;
+		return 0;
 	}
 	else
 	{
 		size_t index = findFreeBlock(height);
 		if(index == INVALID) // Failed to find a big enough free block; out of memory
 		{
-			return NULL;
+			return 0;
 		}
 		else
 		{
