@@ -59,4 +59,5 @@ void* kernel::InterruptDescriptor::operator=(void* rhs)
 	uint32_t offset = (uint32_t) rhs;
 	m_offset1 = (uint16_t) offset;
 	m_offset2 = (offset >> 16);
+	return rhs;
 }
