@@ -13,4 +13,7 @@ void pageFaultHandler(void* frame, unsigned int error);
 __attribute__ ((interrupt))
 void doubleFaultHandler(void* frame, unsigned int error);
 
+__attribute__ ((interrupt))
+void syscallHandler(void* frame);
+
 #endif
