@@ -7,6 +7,10 @@
 #include "x86/pagetableentry.hpp"
 #include "types.hpp"
 
+#define MMAP_RW 0x01
+#define MMAP_EXEC 0x02
+#define MMAP_SHARED 0x04
+
 namespace kernel {
 
 class AddressSpace {
@@ -14,7 +18,7 @@ public:
     
 	AddressSpace(MemoryAllocator& malloc);
 
-	int mmap(void* start, size_t length);
+	int mmap(void* start, size_t length, int flags);
 
 	int munmap(void* start, size_t length);
 

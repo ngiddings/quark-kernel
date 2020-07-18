@@ -1,4 +1,5 @@
 #include "addressspace.hpp"
+#include "util.hpp"
 
 kernel::AddressSpace::AddressSpace(MemoryAllocator& malloc)
   : malloc(malloc)
@@ -7,7 +8,7 @@ kernel::AddressSpace::AddressSpace(MemoryAllocator& malloc)
 	this->pageDirectory = (PageTableEntry*) 0xFFFFF000;
 }
 
-int kernel::AddressSpace::mmap(void* start, size_t length)
+int kernel::AddressSpace::mmap(void* start, size_t length, int flags)
 {
 	size_t tableIndex = (size_t) start / 4096;
 	for(int i = (int) length; i > 0; i -= 4096)
@@ -27,9 +28,11 @@ int kernel::AddressSpace::mmap(void* start, size_t length)
 		{
 			physaddr_t page = malloc.allocate(4096);
 			pageTables[tableIndex] = page;
-			pageTables[tableIndex].setUsermode(false);
-			pageTables[tableIndex].setRw(true);
 			pageTables[tableIndex].setPresent(true);
+			pageTables[tableIndex].setUsermode(false);
+			if(flags & MMAP_RW)
+				pageTables[tableIndex].setRw(true);
+			
 		}
 		tableIndex++;
 	}
