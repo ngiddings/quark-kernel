@@ -28,7 +28,7 @@
 
 .set tagEntryType, 3
 .set tagEntrySize, 12
-.set tagEntryAddress, _start - (0xC0100000 - 0x100000)
+.set tagEntryAddress, _start - (0xFF900000 - 0x100000)
 
 .set tagModuleAlignType, 6
 .set tagModuleAlignSize, 8

@@ -27,7 +27,7 @@ idt_info:
 
 .align 16
 stackBottom:
-.skip 16384
+.skip 8192
 stackTop:
 
 .align 4096
@@ -69,11 +69,14 @@ _start:
 	sub $BASE_DIFF, %edi
 	add $8, %ebx
 	
-switch:	mov (%ebx), %eax
+switch:	
+	mov (%ebx), %eax
 	cmp $0, %eax
 	je s_end
 	cmp $1, %eax
 	je tag_1
+	cmp $3, %eax
+	je tag_3
 	cmp $4, %eax
 	je tag_4
 	cmp $6, %eax
@@ -83,7 +86,8 @@ switch:	mov (%ebx), %eax
 	jmp def
 
 # Boot command line
-tag_1:	mov 4(%ebx), %ecx
+tag_1:	
+	mov 4(%ebx), %ecx
 	sub $8, %ecx
 	mov %ebx, %esi
 	add $8, %esi
@@ -93,16 +97,28 @@ tag_1:	mov 4(%ebx), %ecx
 	mov $system_info, %edi
 	sub $BASE_DIFF, %edi
 	jmp def
-	
+
+tag_3:
+	mov 8(%ebx), %esi
+	mov (%esi), %eax
+	mov %al, (0xB8004)
+	mov %ah, (0xB8006)
+	shr $16, %eax
+	mov %al, (0xB8008)
+	mov %ah, (0xB800a)
+	jmp def
+
 # Basic memory info
-tag_4:	mov 8(%ebx), %eax
+tag_4:	
+	mov 8(%ebx), %eax
 	mov %eax, (%edi)
 	mov 12(%ebx), %eax
 	mov %eax, 4(%edi)
 	jmp def
 
 # Memory map
-tag_6:	mov $memory_map, %esi
+tag_6:	
+	mov $memory_map, %esi
 	sub $BASE_DIFF, %esi	# set esi to point to the table in the kernel image
 	mov 4(%ebx), %ecx
 	sub $16, %ecx		# set ecx to store the size of the table provided by the bootloader
@@ -125,11 +141,13 @@ tag_6:	mov $memory_map, %esi
 	jmp switch
 	
 # Program image location
-tag_21:	mov 8(%ebx), %eax
+tag_21:	
+	mov 8(%ebx), %eax
 	mov %eax, 8(%edi)
 	jmp def
 	
-def:	mov 4(%ebx), %eax
+def:	
+	mov 4(%ebx), %eax
 	add $7, %eax
 	and $0xFFFFFFF8, %eax
 	add %eax, %ebx
@@ -185,7 +203,7 @@ s_end:
 	or $3, %eax
 
 	# Save the PDE to the entry corresponding to 0xC0000000
-	mov %eax, 3072(%edi)
+	mov %eax, 4088(%edi)
 	
 	# Set the last entry in the page directory to point to the page directory itself
 	mov %edi, %eax
