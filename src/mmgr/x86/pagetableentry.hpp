@@ -1,10 +1,3 @@
-/*
- * PageTableEntry.h
- *
- *  Created on: May 22, 2019
- *      Author: nathan
- */
-
 #ifndef SRC_PAGETABLEENTRY_H_
 #define SRC_PAGETABLEENTRY_H_
 
@@ -53,6 +46,6 @@ private:
 	uint32_t physicalAddress : 20;
 };
 
-} /* namespace qkernel */
+}
 
-#endif /* SRC_PAGETABLEENTRY_H_ */
+#endif
