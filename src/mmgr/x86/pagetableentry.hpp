@@ -30,6 +30,7 @@ public:
 	bool getWriteThrough() const;
 	void setWriteThrough(bool writeThrough);
 	physaddr_t operator=(physaddr_t rhs);
+	PageTableEntry operator=(PageTableEntry rhs);
 
 private:
 	uint32_t present : 1;

@@ -130,4 +130,12 @@ physaddr_t PageTableEntry::operator=(physaddr_t rhs)
 	return setPhysicalAddress(rhs);
 }
 
-} /* namespace qkernel */
+PageTableEntry PageTableEntry::operator=(PageTableEntry rhs)
+{
+	uint32_t* iThis = (uint32_t*) this;
+	uint32_t* iThat = (uint32_t*) &rhs;
+	*iThis = *iThat;
+	return rhs;
+}
+
+}
