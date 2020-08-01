@@ -1,5 +1,5 @@
 .section .multiboot
-.include "multiboot2header.S"
+.include "x86/multiboot2header.S"
 
 .section .rodata
 
@@ -17,11 +17,6 @@ gdt:
 gdt_info:
 .short 23
 .long gdt
-
-.align 16
-idt_info:
-.short idt_end - idt - 1
-.long idt
 	
 .section .bss
 
@@ -50,11 +45,6 @@ system_info:
 .global memory_map
 memory_map:
 .skip 16 * 16
-
-.global idt
-idt:
-.skip 8 * 256
-idt_end:
 	
 .section .text
 .global _start
@@ -234,7 +224,6 @@ s_end:
 	# Initialize stack
 	mov $stackTop, %esp
 	lgdt gdt_info
-	lidt idt_info
 
 	jmp $8, $.ldcs
 .ldcs:	

@@ -2,7 +2,7 @@
 #define __MEMORYALLOCATOR_H_
 
 #include <stddef.h>
-#include "types.hpp"
+#include "systypes.hpp"
 
 namespace kernel
 {

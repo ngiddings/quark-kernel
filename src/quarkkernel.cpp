@@ -3,8 +3,8 @@
 
 #include "systypes.hpp"
 #include "systeminfo.hpp"
-#include "mmgr/mmgr.hpp"
-#include "pio.hpp"
+#include "mmgr.hpp"
+#include "x86/pio.hpp"
 #include "tty.hpp"
 #include "util.hpp"
 #include "config.h"

@@ -1,5 +1,5 @@
 #include "buddyallocator.hpp"
-#include "types.hpp"
+#include "systypes.hpp"
 #include "memorymap.hpp"
 
 #define roundUp(n, m) ((n % m == 0) ? n : (n + m - (n % m)))
