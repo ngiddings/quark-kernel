@@ -1,4 +1,4 @@
-#include "processqueue.hpp"
+#include "scheduler.hpp"
 
 kernel::ProcessQueue::ProcessQueue(Process** array)
 {
