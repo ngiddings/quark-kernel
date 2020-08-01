@@ -48,10 +48,10 @@ int kernel::munmap(MemoryAllocator& allocator, void* start, size_t length)
 		size_t directoryIndex = tableIndex / 1024;
 		if(pageDirectory[directoryIndex].getPresent())
 		{
-			pageDirectory[directoryIndex] = 0;
-			pageDirectory[directoryIndex].setPresent(false);
-			pageDirectory[directoryIndex].setUsermode(false);
-			pageDirectory[directoryIndex].setRw(false);
+			pageTables[tableIndex] = 0;
+			pageTables[tableIndex].setPresent(false);
+			pageTables[tableIndex].setUsermode(false);
+			pageTables[tableIndex].setRw(false);
 		}
 		tableIndex++;
 	}
@@ -75,24 +75,26 @@ physaddr_t kernel::getPhysicalAddress(void* addr)
 {
     PageTableEntry* pageTables = (PageTableEntry*) 0xFFC00000;
     size_t tableIndex = (size_t) addr / 4096;
-    return pageTables[tableIndex].getPhysicalAddress() + (size_t) addr & 0xFFF;
+    return pageTables[tableIndex].getPhysicalAddress() + ((size_t) addr & 0xFFF);
 }
 
 int kernel::createAddressSpace(void* table)
 {
-	if((size_t) table & 0xFFF != 0)
+	if(((size_t) table & 0xFFF) != 0)
 		return -1;
     PageTableEntry* pageDirectory = (PageTableEntry*) 0xFFFFF000;
     PageTableEntry* newDirectory = (PageTableEntry*) table;
     newDirectory[1022] = pageDirectory[1022];
     newDirectory[1023] = pageDirectory[1023];
+	return 0;
 }
 
 int kernel::loadAddressSpace(physaddr_t table)
 {
-	if(table & 0xFFF != 0)
+	if((table & 0xFFF) != 0)
 		return -1;
-	asm("mov %0, %cr3"
+	asm("mov %0, %%cr3"
 		: 
 		: "r" (table));
+	return 0;
 }
