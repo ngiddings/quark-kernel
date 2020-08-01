@@ -1,7 +1,7 @@
 #ifndef MMAP_H
 #define MMAP_H
 
-#include "memoryallocator.hpp"
+#include "pageallocator.hpp"
 
 #define MMAP_RW 0x01
 #define MMAP_EXEC 0x02
