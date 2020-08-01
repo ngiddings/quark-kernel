@@ -1,7 +1,7 @@
 #ifndef BUDDYALLOCATOR_H_
 #define BUDDYALLOCATOR_H_
 
-#include "memoryallocator.hpp"
+#include "pageallocator.hpp"
 #include "memorymap.hpp"
 
 namespace kernel
