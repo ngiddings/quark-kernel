@@ -5,7 +5,7 @@ quark_kernel_CPPFLAGS = -ffreestanding -mgeneral-regs-only -O0 -Wall -fno-except
 quark_kernel_LDFLAGS = -nostdlib
 
 if x86
-quark_kernel_SOURCES +=    x86/pagetableentry.cpp \
+quark_kernel_SOURCES += x86/pagetableentry.cpp \
                         x86/mmap.cpp \
                         x86/interrupts.cpp \
                         x86/inthandlers.cpp \
