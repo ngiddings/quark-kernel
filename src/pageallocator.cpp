@@ -1,4 +1,4 @@
-#include "buddyallocator.hpp"
+#include "pageallocator.hpp"
 #include "systypes.hpp"
 #include "memorymap.hpp"
 

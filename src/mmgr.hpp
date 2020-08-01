@@ -2,6 +2,6 @@
 #define MMGR_H
 
 #include "mmap.hpp"
-#include "buddyallocator.hpp"
+#include "pageallocator.hpp"
 
 #endif

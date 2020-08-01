@@ -1,7 +1,7 @@
 #include "../mmap.hpp"
 #include "pagetableentry.hpp"
 
-int kernel::mmap(MemoryAllocator& allocator, void* start, size_t length, int flags)
+int kernel::mmap(PageAllocator& allocator, void* start, size_t length, int flags)
 {
     if((size_t) start % 4096 != 0)
         return -1;
@@ -36,7 +36,7 @@ int kernel::mmap(MemoryAllocator& allocator, void* start, size_t length, int fla
 	return 0;
 }
 
-int kernel::munmap(MemoryAllocator& allocator, void* start, size_t length)
+int kernel::munmap(PageAllocator& allocator, void* start, size_t length)
 {
     if((size_t) start % 4096 != 0)
 		return -1;
