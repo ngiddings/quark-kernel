@@ -1,5 +1,5 @@
 noinst_PROGRAMS = quark-kernel
-quark_kernel_SOURCES = quarkkernel.cpp elf.cpp tty.cpp systeminfo.cpp util.cpp memorymap.cpp pageallocator.cpp 
+quark_kernel_SOURCES = startup.cpp elf.cpp tty.cpp systeminfo.cpp util.cpp memorymap.cpp pageallocator.cpp 
 quark_kernel_LDADD = -lgcc
 quark_kernel_CPPFLAGS = -ffreestanding -mgeneral-regs-only -O0 -Wall -fno-exceptions -fno-rtti -ggdb
 quark_kernel_LDFLAGS = -nostdlib
