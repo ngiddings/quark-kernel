@@ -16,23 +16,68 @@ public:
         INT16 = 6
     };
 
-    InterruptDescriptor();
+    InterruptDescriptor()
+    {
+        this->m_offset1 = 0;
+        this->m_selector = 0;
+        this->m_zero = 0;
+        this->m_type = 0;
+        this->m_storage = 0;
+        this->m_dpl = 0;
+        this->m_present = 0;
+        this->m_offset2 = 0;
+    }
 
-    InterruptDescriptor(void* handler, Type type, unsigned int dpl);
+    InterruptDescriptor(void* handler, Type type, unsigned int dpl)
+    {
+        uint32_t offset = (uint32_t) handler;
+        this->m_offset1 = (uint16_t) offset;
+        this->m_selector = 8;
+        this->m_zero = 0;
+        this->m_type = (uint16_t) type;
+        this->m_storage = 0;
+        this->m_dpl = dpl;
+        this->m_present = 1;
+        this->m_offset2 = offset >> 16;
+    }
 
-    bool present();
+    bool present()
+    {
+        return m_present == 1;
+    }
 
-    void present(bool present);
+    void present(bool present)
+    {
+        m_present = present ? 1 : 0;
+    }
 
-    Type type();
+    Type type()
+    {
+        return (Type) m_type;
+    }
 
-    void type(Type type);
+    void type(Type type)
+    {
+        m_type = (unsigned int) type;
+    }
 
-    unsigned int dpl();
+    unsigned int dpl()
+    {
+        return m_dpl;
+    }
 
-    void dpl(unsigned int dpl);
+    void dpl(unsigned int dpl)
+    {
+        m_dpl = dpl;
+    }
 
-    void* operator=(void* rhs);
+    void* operator=(void* rhs)
+    {
+        uint32_t offset = (uint32_t) rhs;
+        m_offset1 = (uint16_t) offset;
+        m_offset2 = (offset >> 16);
+        return rhs;
+    }
     
 private:
 
@@ -93,68 +138,6 @@ __attribute__ ((interrupt))
 void syscallHandler(void* frame)
 {
     
-}
-
-InterruptDescriptor::InterruptDescriptor()
-{
-	this->m_offset1 = 0;
-	this->m_selector = 0;
-	this->m_zero = 0;
-	this->m_type = 0;
-	this->m_storage = 0;
-	this->m_dpl = 0;
-	this->m_present = 0;
-	this->m_offset2 = 0;
-}
-
-InterruptDescriptor::InterruptDescriptor(void* handler, Type type, unsigned int dpl)
-{
-	uint32_t offset = (uint32_t) handler;
-	this->m_offset1 = (uint16_t) offset;
-	this->m_selector = 8;
-	this->m_zero = 0;
-	this->m_type = (uint16_t) type;
-	this->m_storage = 0;
-	this->m_dpl = dpl;
-	this->m_present = 1;
-	this->m_offset2 = offset >> 16;
-}
-
-bool InterruptDescriptor::present()
-{
-	return m_present == 1;
-}
-void InterruptDescriptor::present(bool present)
-{
-	m_present = present ? 1 : 0;
-}
-
-InterruptDescriptor::Type InterruptDescriptor::type()
-{
-	return (Type) m_type;
-}
-
-void InterruptDescriptor::type(InterruptDescriptor::Type type)
-{
-	m_type = (unsigned int) type;
-}
-
-unsigned int InterruptDescriptor::dpl()
-{
-	return m_dpl;
-}
-
-void InterruptDescriptor::dpl(unsigned int dpl)
-{
-	m_dpl = dpl;
-}
-
-void* InterruptDescriptor::operator=(void* rhs)
-{
-	uint32_t offset = (uint32_t) rhs;
-	m_offset1 = (uint16_t) offset;
-	m_offset2 = (offset >> 16);
-	return rhs;
 }
 
 kernel::Interrupts::Interrupts()
