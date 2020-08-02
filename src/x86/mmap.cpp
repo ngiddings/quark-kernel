@@ -1,5 +1,153 @@
 #include "../mmap.hpp"
-#include "pagetableentry.hpp"
+
+class PageTableEntry {
+public:
+
+	PageTableEntry() 
+	{
+		this->present = 0;
+		this->rw = 0;
+		this->usermode = 0;
+		this->writeThrough = 0;
+		this->cacheDisable = 0;
+		this->accessed = 0;
+		this->dirty = 0;
+		this->pat = 0;
+		this->global = 0;
+		this->shared = 0;
+		this->ignored = 0;
+		this->physicalAddress = 0;
+	}
+
+	bool getAccessed() const 
+	{
+		return accessed == 1;
+	}
+
+	bool getCacheDisable() const
+	{
+		return cacheDisable == 1;
+	}
+
+	void setCacheDisable(bool cacheDisable)
+	{
+		this->cacheDisable = cacheDisable ? 1 : 0;
+	}
+
+	bool getDirty() const
+	{
+		return dirty == 1;
+	}
+
+	bool getGlobal() const
+	{
+		return global == 1;
+	}
+
+	void setGlobal(bool global)
+	{
+		this->global = global ? 1 : 0;
+	}
+
+	bool getPat() const
+	{
+		return pat == 1;
+	}
+
+	void setPat(bool pat)
+	{
+		this->pat = pat ? 1 : 0;
+	}
+
+	physaddr_t getPhysicalAddress() const
+	{
+		physaddr_t physicalAddress = this->physicalAddress;
+		return physicalAddress << 12;
+	}
+
+	physaddr_t setPhysicalAddress(physaddr_t physicalAddress)
+	{
+		this->physicalAddress = physicalAddress >> 12;
+		return this->physicalAddress << 12;
+	}
+
+	bool getPresent() const
+	{
+		return present == 1;
+	}
+
+	void setPresent(bool present)
+	{
+		this->present = present ? 1 : 0;
+	}
+
+	bool getRw() const
+	{
+		return rw == 1;
+	}
+
+	void setRw(bool rw)
+	{
+		this->rw = rw ? 1 : 0;
+	}
+
+	bool getShared() const
+	{
+		return shared == 1;
+	}
+
+	void setShared(bool shared)
+	{
+		this->shared = shared ? 1 : 0;
+	}
+
+	bool getUsermode() const
+	{
+		return usermode == 1;
+	}
+
+	void setUsermode(bool usermode)
+	{
+		this->usermode = usermode ? 1 : 0;
+	}
+
+	bool getWriteThrough() const
+	{
+		return writeThrough == 1;
+	}
+
+	void setWriteThrough(bool writeThrough)
+	{
+		this->writeThrough = writeThrough ? 1 : 0;
+	}
+
+	physaddr_t operator=(physaddr_t rhs)
+	{
+		return setPhysicalAddress(rhs);
+	}
+
+	PageTableEntry operator=(PageTableEntry rhs)
+	{
+		uint32_t* iThis = (uint32_t*) this;
+		uint32_t* iThat = (uint32_t*) &rhs;
+		*iThis = *iThat;
+		return rhs;
+	}
+
+private:
+	uint32_t present : 1;
+	uint32_t rw : 1;
+	uint32_t usermode : 1;
+	uint32_t writeThrough : 1;
+	uint32_t cacheDisable : 1;
+	uint32_t accessed : 1;
+	uint32_t dirty : 1;
+	uint32_t pat : 1;
+	uint32_t global : 1;
+	uint32_t shared : 1;
+	uint32_t ignored : 2;
+	uint32_t physicalAddress : 20;
+};
 
 int kernel::mmap(PageAllocator& allocator, void* start, size_t length, int flags)
 {
