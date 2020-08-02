@@ -25,6 +25,8 @@ private:
 	size_t highMemory;
 
 	physaddr_t kernelBase;
+
+	physaddr_t kernelEnd;
 	
 };
 	
