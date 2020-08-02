@@ -10,9 +10,9 @@
 namespace kernel
 {
 
-int mmap(PageAllocator& allocator, void* start, size_t length, int flags);
+int mmap(void* start, size_t length, int flags);
 
-int munmap(PageAllocator& allocator, void* start, size_t length);
+int munmap(void* start, size_t length);
 
 bool isMapped(void* addr);
 

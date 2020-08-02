@@ -1,4 +1,5 @@
 #include "../mmap.hpp"
+#include "../kernelstate.hpp"
 
 class PageTableEntry {
 public:
@@ -149,7 +150,7 @@ private:
 	uint32_t physicalAddress : 20;
 };
 
-int kernel::mmap(PageAllocator& allocator, void* start, size_t length, int flags)
+int kernel::mmap(void* start, size_t length, int flags)
 {
     if((size_t) start % 4096 != 0)
         return -1;
@@ -161,7 +162,7 @@ int kernel::mmap(PageAllocator& allocator, void* start, size_t length, int flags
 		size_t directoryIndex = tableIndex / 1024;
 		if(!pageDirectory[directoryIndex].getPresent())
 		{
-			physaddr_t newPT = allocator.allocate(4096);
+			physaddr_t newPT = State::pageAllocator.allocate(4096);
 			if(newPT == 0)
 				return -1;
 			pageDirectory[directoryIndex] = newPT;
@@ -171,7 +172,7 @@ int kernel::mmap(PageAllocator& allocator, void* start, size_t length, int flags
 		}
 		if(!pageTables[tableIndex].getPresent())
 		{
-			physaddr_t page = allocator.allocate(4096);
+			physaddr_t page = State::pageAllocator.allocate(4096);
 			pageTables[tableIndex] = page;
 			pageTables[tableIndex].setPresent(true);
 			pageTables[tableIndex].setUsermode(false);
@@ -184,7 +185,7 @@ int kernel::mmap(PageAllocator& allocator, void* start, size_t length, int flags
 	return 0;
 }
 
-int kernel::munmap(PageAllocator& allocator, void* start, size_t length)
+int kernel::munmap(void* start, size_t length)
 {
     if((size_t) start % 4096 != 0)
 		return -1;

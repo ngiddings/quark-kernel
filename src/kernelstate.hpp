@@ -1,9 +1,10 @@
 #ifndef KERNELSTATE_H
 #define KERNELSTATE_H
 
-#include <stddef.h>
-
-#include "process.hpp"
+#include "pageallocator.hpp"
+#include "allocator.hpp"
+#include "interrupts.hpp"
+#include "scheduler.hpp"
 
 namespace kernel
 {
@@ -12,7 +13,15 @@ class State
 {
 public:
 
-    static const size_t MAX_PROCESSES = 2048;
+    static const unsigned int MAX_PROCESSES = 2048;
+
+    static BuddyAllocator pageAllocator;
+
+    static Allocator allocator;
+
+    static Interrupts interrupts;
+
+    static ProcessQueue processQueue;
 
 };
 
