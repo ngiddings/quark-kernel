@@ -8,12 +8,8 @@ if x86
 quark_kernel_SOURCES += x86/pagetableentry.cpp \
                         x86/mmap.cpp \
                         x86/interrupts.cpp \
-                        x86/inthandlers.cpp \
-                        x86/interruptdescriptor.cpp \
-                        x86/idt.S \
                         x86/entry.S \
-                        x86/pio.S \
-                        x86/multiboot2header.S
+                        x86/pio.S 
 quark_kernel_LDFLAGS += -T x86/linker.ld
 quark_kernel_DEPENDENCIES = x86/linker.ld
 endif
