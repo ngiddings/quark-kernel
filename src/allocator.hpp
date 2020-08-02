@@ -10,6 +10,8 @@ class Allocator
 {
 public:
 
+    Allocator();
+
     /**
      * @param base A pointer to the start of the heap.
      * @param heapSize The size of the heap, in bytes. Must be a power of two.

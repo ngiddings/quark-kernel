@@ -20,6 +20,11 @@ inline size_t ilog2(size_t n)
 	return count - (isPowerOfTwo ? 1 : 0);
 }
 
+kernel::Allocator::Allocator()
+{
+    
+}
+
 kernel::Allocator::Allocator(void* base, size_t heapSize, size_t blockSize)
 {
     this->base = (char*) base;
