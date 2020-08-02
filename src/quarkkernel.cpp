@@ -4,7 +4,6 @@
 #include "systypes.hpp"
 #include "systeminfo.hpp"
 #include "mmgr.hpp"
-#include "x86/pio.hpp"
 #include "tty.hpp"
 #include "util.hpp"
 #include "config.h"
@@ -30,7 +29,5 @@ void main(char* cmdline)
 	}
 	BuddyAllocator alloc(memmap, (char*) 0xFF800000, system_info.getHighMemory() / 4 + 256, 6);
 	mmap(alloc, (void*) 0, 4096, MMAP_RW);
-	outb(0xa1, 0xff);
-	outb(0x21, 0xff);
 	tty << "Nothing left to do. Hanging.\n";
 }
