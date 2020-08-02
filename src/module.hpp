@@ -123,6 +123,8 @@ public:
     static const ISA HOST_ISA = aarch64;
 #endif
 
+    ELF();
+
     ELF(void* location);
 
     void* entry();
@@ -133,7 +135,25 @@ public:
 
 private:
 
-    void* location;
+    void* m_fileLocation;
+
+};
+
+class Module
+{
+public:
+
+    Module();
+
+    Module(physaddr_t start, physaddr_t end);
+
+private:
+
+    physaddr_t m_start;
+
+    physaddr_t m_end;
+
+    ELF binary;
 
 };
 
