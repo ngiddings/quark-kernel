@@ -1,5 +1,10 @@
 #include "scheduler.hpp"
 
+kernel::ProcessQueue::ProcessQueue()
+{
+    
+}
+
 kernel::ProcessQueue::ProcessQueue(Process** array)
 {
     m_array = array;
@@ -14,6 +19,7 @@ kernel::Process* kernel::ProcessQueue::extractMin()
     Process* p = m_array[0];
     m_array[0] = m_array[m_size];
     heapify(0);
+    return p;
 }
 
 void kernel::ProcessQueue::insert(Process* n)

@@ -22,6 +22,8 @@ class ProcessQueue
 {
 public:
 
+    ProcessQueue();
+
     ProcessQueue(Process** array);
 
     Process* extractMin();
