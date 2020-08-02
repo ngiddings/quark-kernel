@@ -1,6 +1,7 @@
 #include "../interrupts.hpp"
 
 #include <stdint.h>
+#include <stddef.h>
 
 class InterruptDescriptor
 {
@@ -59,7 +60,9 @@ void lidt()
     IDTInfo idtInfo;
     idtInfo.size = sizeof(idt) - 1;
     idtInfo.location = (void*) &idt;
-    asm("lidt idt");
+    asm("lidt (%0)"
+        :
+        : "r" (&idtInfo));
 }
 
 __attribute__ ((interrupt))
@@ -156,6 +159,8 @@ void* InterruptDescriptor::operator=(void* rhs)
 
 kernel::Interrupts::Interrupts()
 {
+    for(unsigned int i = 0; i <= MAX_SYSCALL_ID; i++)
+        syscalls[i] = (void*) NULL;
     idt[0] = InterruptDescriptor((void*) &divisionByZero, InterruptDescriptor::INT32, 0);
     idt[8] = InterruptDescriptor((void*) &doubleFaultHandler, InterruptDescriptor::INT32, 0);
     idt[0x80] = InterruptDescriptor((void*) &syscallHandler, InterruptDescriptor::INT32, 0);
@@ -172,4 +177,10 @@ void kernel::Interrupts::enable()
 void kernel::Interrupts::disable()
 {
     asm("cli");
+}
+
+void kernel::Interrupts::addSyscall(unsigned int id, void* function)
+{
+    if(id <= MAX_SYSCALL_ID)
+        syscalls[id] = function;
 }
