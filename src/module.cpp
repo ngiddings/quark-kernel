@@ -1,4 +1,4 @@
-#include "elf.hpp"
+#include "module.hpp"
 #include "util.hpp"
 
 kernel::ELF::ELF()

@@ -64,7 +64,7 @@ int memcmp(const void* ptr1, const void* ptr2, size_t num)
 	return 0;
 }
 
-void* memset (void* ptr, int value, size_t num)
+void* memset(void* ptr, int value, size_t num)
 {
 	uint8_t* dest = (uint8_t*) ptr;
 	uint8_t v = (uint8_t) value;
@@ -73,6 +73,51 @@ void* memset (void* ptr, int value, size_t num)
 		dest[i] = v;
 	}
 	return ptr;
+}
+
+int strlen(const char* str)
+{
+	int i = 0;
+	while(str[i] != '\0')
+	{
+		i++;
+	}
+	return i;
+}
+
+char* strcpy(char* destination, const char* source)
+{
+	int sourceLen = strlen(source);
+	if((destination <= source) || (destination > (source + sourceLen)))
+	{
+		char* d = destination;
+		const char* s = source;
+		while(true)
+		{
+			*d = *s;
+			if(*s == '\0')
+			{
+				break;
+			}
+			else
+			{
+				s++;
+				d++;
+			}
+		}
+	}
+	else
+	{
+		char* d = destination + sourceLen;
+		const char* s = source + sourceLen;
+		do
+		{
+			*d = *s;
+			d--;
+			s--;
+		} while(d > destination);
+	}
+	return destination;
 }
 
 void __cxa_pure_virtual()
