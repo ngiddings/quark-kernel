@@ -185,6 +185,42 @@ int kernel::mmap(void* start, size_t length, int flags)
 	return 0;
 }
 
+int kernel::mmap(void* start, physaddr_t p_start, size_t length, int flags)
+{
+	if((size_t) start % 4096 != 0 || p_start % 4096 != 0)
+        return -1;
+	PageTableEntry* pageTables = (PageTableEntry*) 0xFFC00000;
+    PageTableEntry* pageDirectory = (PageTableEntry*) 0xFFFFF000;
+	size_t tableIndex = (size_t) start / 4096;
+	physaddr_t page = p_start;
+	for(int i = (int) length; i > 0; i -= 4096)
+	{
+		size_t directoryIndex = tableIndex / 1024;
+		if(!pageDirectory[directoryIndex].getPresent())
+		{
+			physaddr_t newPT = State::pageAllocator.allocate(4096);
+			if(newPT == 0)
+				return -1;
+			pageDirectory[directoryIndex] = newPT;
+			pageDirectory[directoryIndex].setPresent(true);
+			pageDirectory[directoryIndex].setUsermode(false);
+			pageDirectory[directoryIndex].setRw(true);
+		}
+		if(!pageTables[tableIndex].getPresent())
+		{
+			pageTables[tableIndex] = page;
+			pageTables[tableIndex].setPresent(true);
+			pageTables[tableIndex].setUsermode(false);
+			if(flags & MMAP_RW)
+				pageTables[tableIndex].setRw(true);
+			
+		}
+		tableIndex++;
+		page += 4096;
+	}
+	return 0;
+}
+
 int kernel::munmap(void* start, size_t length)
 {
     if((size_t) start % 4096 != 0)
