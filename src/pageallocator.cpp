@@ -26,7 +26,7 @@ kernel::BuddyAllocator::BuddyAllocator()
 
 }
 
-kernel::BuddyAllocator::BuddyAllocator(kernel::MemoryMap& memmap,
+kernel::BuddyAllocator::BuddyAllocator(const kernel::MemoryMap& memmap,
 					char* bitmap, size_t blockCount,
 					size_t treeHeight)
 {

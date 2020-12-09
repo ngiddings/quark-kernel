@@ -57,7 +57,7 @@ public:
 
 	BuddyAllocator();
 
-	BuddyAllocator(MemoryMap& memmap, char* bitmap, size_t blockCount,
+	BuddyAllocator(const MemoryMap& memmap, char* bitmap, size_t blockCount,
 		       size_t treeHeight);
 
 	BuddyAllocator(char* bitmap, size_t blockSize, size_t blockCount,
