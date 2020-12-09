@@ -3,8 +3,8 @@
 
 AC_PREREQ([2.69])
 AC_INIT([quark-kernel], [pre-alpha])
-AM_INIT_AUTOMAKE([-Wall foreign])
-AC_CONFIG_SRCDIR([src/tty.cpp])
+AM_INIT_AUTOMAKE([-Wall foreign subdir-objects])
+AC_CONFIG_SRCDIR([src/allocator.cpp])
 AC_CONFIG_HEADERS([src/config.h])
 
 # Checks for programs.

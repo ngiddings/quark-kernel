@@ -1,6 +1,7 @@
 #include <stdint.h>
 
 #include "util.hpp"
+#include "kernelstate.hpp"
 
 void* memcpy(void* destination, const void* source, size_t num)
 {
@@ -120,7 +121,42 @@ char* strcpy(char* destination, const char* source)
 	return destination;
 }
 
+void* malloc(size_t size)
+{
+	return kernel::State::allocator.allocate(size);
+}
+
+void* calloc(size_t count, size_t size)
+{
+	return memset(malloc(count * size), 0, count * size);
+}
+
+void free(void* p)
+{
+	kernel::State::allocator.free(p);
+}
+
 void __cxa_pure_virtual()
 {
     // do nothing
+}
+ 
+void* operator new(size_t size)
+{
+    return malloc(size);
+}
+ 
+void* operator new[](size_t size)
+{
+    return malloc(size);
+}
+ 
+void operator delete(void* p)
+{
+    free(p);
+}
+ 
+void operator delete[](void* p)
+{
+    free(p);
 }

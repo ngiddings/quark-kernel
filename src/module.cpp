@@ -1,44 +1,39 @@
 #include "module.hpp"
 #include "util.hpp"
 
-kernel::ELF::ELF()
+using namespace kernel;
+
+Module::Module()
 {
-    this->m_fileLocation = (void*) NULL;
+    m_start = 0;
+    m_end = 0;
+    m_command = NULL;
 }
 
-kernel::ELF::ELF(void* location)
+Module::Module(physaddr_t start, physaddr_t end, const char* command)
 {
-    this->m_fileLocation = location;
+    m_start = start;
+    m_end = end;
+    m_command = new char[strlen(command) + 1];
+    strcpy(m_command, command);
 }
 
-void* kernel::ELF::entry()
+Module::~Module()
 {
-    Header* fileHeader = (Header*) m_fileLocation;
-    return fileHeader->entry;
+    delete[] m_command;
 }
 
-int kernel::ELF::validate()
+physaddr_t Module::getStart() const
 {
-    Header* fileHeader = (Header*) m_fileLocation;
-    if(fileHeader->magic != 0x464c457f)
-        return -1;
-    else if((ISA) fileHeader->machine != HOST_ISA)
-        return -1;
-    else if((Endianness) fileHeader->endianness != Little)
-        return -1;
-    return 0;
+    return m_start;
 }
 
-int kernel::ELF::load()
+physaddr_t Module::getEnd() const
 {
-    Header* fileHeader = (Header*) m_fileLocation;
-    ProgramHeader* programHeader = (ProgramHeader*) ((size_t) m_fileLocation + fileHeader->phoffset);
-    int count = (int) fileHeader->phcount;
-    for(int i = 0; i < count; i++)
-    {
-        if((SegmentType) programHeader->type != Load)
-            continue;
-        memcpy(programHeader->vaddr, m_fileLocation + programHeader->offset, programHeader->filesize);
-    }
-    return 0;
+    return m_end;
+}
+
+const char* Module::getCommand() const
+{
+    return m_command;
 }
