@@ -3,20 +3,10 @@
 
 #include <stddef.h>
 
+#include "process.hpp"
+
 namespace kernel
 {
-
-class Process
-{
-public:
-
-    Process();
-
-    size_t priority;
-
-    void* stack;
-
-};
 
 class ProcessQueue
 {
