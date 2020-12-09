@@ -5,6 +5,7 @@ quark-kernel
 
 autom4te.cache/
 .deps
+.dirstamp
 aclocal.m4
 ar-lib
 compile
