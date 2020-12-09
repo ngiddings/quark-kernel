@@ -4,6 +4,7 @@
 #include <stddef.h>
 
 #include "systypes.hpp"
+#include "memorymap.hpp"
 
 namespace kernel
 {
@@ -12,21 +13,19 @@ class SystemInfo
 {
 public:
 
-	size_t getLowMemory();
+	SystemInfo();
 
-	size_t getHighMemory();
+	SystemInfo(MemoryMap& memoryMap, const char* commandLine);
 
-	physaddr_t getKernelBase();
+	const MemoryMap& getMemoryMap() const;
+
+	const char* getCommandLine() const;
 
 private:
-    
-	size_t lowMemory;
 
-	size_t highMemory;
+	MemoryMap m_memmap;
 
-	physaddr_t kernelBase;
-
-	physaddr_t kernelEnd;
+	char commandLine[128];
 	
 };
 	

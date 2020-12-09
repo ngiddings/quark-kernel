@@ -5,6 +5,7 @@
 #include "allocator.hpp"
 #include "interrupts.hpp"
 #include "scheduler.hpp"
+#include "systeminfo.hpp"
 
 namespace kernel
 {
@@ -22,6 +23,8 @@ public:
     static Interrupts interrupts;
 
     static ProcessQueue processQueue;
+
+    static SystemInfo config;
 
 };
 

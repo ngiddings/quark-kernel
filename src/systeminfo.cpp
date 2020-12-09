@@ -1,16 +1,25 @@
 #include "systeminfo.hpp"
+#include "util.hpp"
 
-size_t kernel::SystemInfo::getLowMemory()
+using namespace kernel;
+
+SystemInfo::SystemInfo()
 {
-	return lowMemory;
+	
 }
 
-size_t kernel::SystemInfo::getHighMemory()
+SystemInfo::SystemInfo(MemoryMap& memoryMap, const char* commandLine)
+	: m_memmap(memoryMap)
 {
-	return highMemory;
+	strcpy(this->commandLine, commandLine);
 }
 
-physaddr_t kernel::SystemInfo::getKernelBase()
+const MemoryMap& SystemInfo::getMemoryMap() const
 {
-	return kernelBase;
+	return m_memmap;
+}
+
+const char* SystemInfo::getCommandLine() const
+{
+	return commandLine;
 }

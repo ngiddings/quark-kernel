@@ -2,7 +2,6 @@ ENTRY(_start)
 
 SECTIONS
 {
-
 	. = 0xFF900000;
 	VIRTUAL_BASE = .;
 	PHYSICAL_BASE = 0x100000;
