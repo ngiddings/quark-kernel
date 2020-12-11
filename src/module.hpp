@@ -5,7 +5,7 @@
 
 #include "systypes.hpp"
 
-namespace kernel
+namespace kernelns
 {
 
 class Module

@@ -1,7 +1,7 @@
 #include "systeminfo.hpp"
 #include "util.hpp"
 
-using namespace kernel;
+using namespace kernelns;
 
 SystemInfo::SystemInfo()
 {

@@ -1,17 +1,17 @@
 #include "scheduler.hpp"
 
-kernel::ProcessQueue::ProcessQueue()
+kernelns::ProcessQueue::ProcessQueue()
 {
     
 }
 
-kernel::ProcessQueue::ProcessQueue(Process** array)
+kernelns::ProcessQueue::ProcessQueue(Process** array)
 {
     m_array = array;
     m_size = 0;
 }
 
-kernel::Process* kernel::ProcessQueue::extractMin()
+kernelns::Process* kernelns::ProcessQueue::extractMin()
 {
     if(m_size == 0)
         return NULL;
@@ -22,7 +22,7 @@ kernel::Process* kernel::ProcessQueue::extractMin()
     return p;
 }
 
-void kernel::ProcessQueue::insert(Process* n)
+void kernelns::ProcessQueue::insert(Process* n)
 {
     size_t i = m_size;
     m_size++;
@@ -33,7 +33,7 @@ void kernel::ProcessQueue::insert(Process* n)
     m_array[i] = n;
 }
 
-void kernel::ProcessQueue::remove(Process* n)
+void kernelns::ProcessQueue::remove(Process* n)
 {
     for(size_t i = 0; i < m_size; i++)
     {
@@ -47,7 +47,7 @@ void kernel::ProcessQueue::remove(Process* n)
     }
 }
 
-void kernel::ProcessQueue::heapify(size_t i)
+void kernelns::ProcessQueue::heapify(size_t i)
 {
     if(i * 2 + 1 >= m_size)
 			return;

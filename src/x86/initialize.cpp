@@ -6,7 +6,7 @@
 #include "../mmap.hpp"
 #include "../util.hpp"
 
-using namespace kernel;
+using namespace kernelns;
 
 extern int _kernelEnd;
 

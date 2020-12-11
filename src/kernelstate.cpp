@@ -1,6 +1,6 @@
 #include "kernelstate.hpp"
 
-using namespace kernel;
+using namespace kernelns;
 
 BuddyAllocator State::pageAllocator;
 Allocator State::allocator;

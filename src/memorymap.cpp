@@ -1,6 +1,6 @@
 #include "memorymap.hpp"
 
-using namespace kernel;
+using namespace kernelns;
 
 MemoryMap::Region::Region()
 {

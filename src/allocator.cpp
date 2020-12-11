@@ -20,12 +20,12 @@ inline size_t ilog2(size_t n)
 	return count - (isPowerOfTwo ? 1 : 0);
 }
 
-kernel::Allocator::Allocator()
+kernelns::Allocator::Allocator()
 {
     
 }
 
-kernel::Allocator::Allocator(void* base, size_t heapSize, size_t blockSize)
+kernelns::Allocator::Allocator(void* base, size_t heapSize, size_t blockSize)
 {
     this->base = (char*) base;
     this->heapSize = heapSize;
@@ -54,7 +54,7 @@ kernel::Allocator::Allocator(void* base, size_t heapSize, size_t blockSize)
     }
 }
 
-void* kernel::Allocator::allocate(size_t size)
+void* kernelns::Allocator::allocate(size_t size)
 {
     size += blockSize - 1;
     size -= size % blockSize;
@@ -68,7 +68,7 @@ void* kernel::Allocator::allocate(size_t size)
     return NULL;
 }
 
-void kernel::Allocator::free(void* location)
+void kernelns::Allocator::free(void* location)
 {
     size_t offset = (size_t) location - (size_t) base;
     size_t index = (offset / blockSize) + (1 << treeHeight);
@@ -82,7 +82,7 @@ void kernel::Allocator::free(void* location)
     }
 }
 
-size_t kernel::Allocator::findFreeBlock(size_t height)
+size_t kernelns::Allocator::findFreeBlock(size_t height)
 {
     if(height > treeHeight)
         return 0;

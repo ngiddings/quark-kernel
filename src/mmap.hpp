@@ -7,7 +7,7 @@
 #define MMAP_EXEC 0x02
 #define MMAP_SHARED 0x04
 
-namespace kernel
+namespace kernelns
 {
 
 int mmap(void* start, size_t length, int flags);

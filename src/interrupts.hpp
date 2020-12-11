@@ -1,7 +1,7 @@
 #ifndef INTERRUPTS_H
 #define INTERRUPTS_H
 
-namespace kernel
+namespace kernelns
 {
     class Interrupts
     {

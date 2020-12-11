@@ -1,7 +1,7 @@
 #include "module.hpp"
 #include "util.hpp"
 
-using namespace kernel;
+using namespace kernelns;
 
 Module::Module()
 {

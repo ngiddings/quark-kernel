@@ -3,7 +3,7 @@
 
 #include "systypes.hpp"
 
-namespace kernel
+namespace kernelns
 {
 
 class MemoryMap

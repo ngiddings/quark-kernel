@@ -17,17 +17,6 @@ void* memcpy(void* destination, const void* source, size_t num)
 	return destination;
 }
 
-/*
- * There are four distinct cases here:
- * 	1. destination and source blocks do not overlap
- * 	2. destination and source are the same
- * 	3. destination and source do overlap; destination starts before source
- * 	4. destination and source do overlap; destination starts after source
- *
- * Memcpy results in expected behavior in all cases except for case 4. In that
- * case, copying must be done backwards to avoid reading from bytes that have
- * already been overwritten.
- */
 void* memmove(void* destination, const void* source, size_t num)
 {
 	if(num > 0)
@@ -123,7 +112,7 @@ char* strcpy(char* destination, const char* source)
 
 void* malloc(size_t size)
 {
-	return kernel::State::allocator.allocate(size);
+	return kernelns::State::allocator.allocate(size);
 }
 
 void* calloc(size_t count, size_t size)
@@ -131,9 +120,17 @@ void* calloc(size_t count, size_t size)
 	return memset(malloc(count * size), 0, count * size);
 }
 
+void* realloc(void* ptr, size_t size)
+{
+	void* n = kernelns::State::allocator.allocate(size);
+	memmove(n, ptr, size);
+	free(ptr);
+	return n;
+}
+
 void free(void* p)
 {
-	kernel::State::allocator.free(p);
+	kernelns::State::allocator.free(p);
 }
 
 void __cxa_pure_virtual()

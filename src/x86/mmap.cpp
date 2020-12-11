@@ -150,7 +150,7 @@ private:
 	uint32_t physicalAddress : 20;
 };
 
-int kernel::mmap(void* start, size_t length, int flags)
+int kernelns::mmap(void* start, size_t length, int flags)
 {
     if((size_t) start % 4096 != 0)
         return -1;
@@ -184,7 +184,7 @@ int kernel::mmap(void* start, size_t length, int flags)
 	return 0;
 }
 
-int kernel::mmap(void* start, physaddr_t p_start, size_t length, int flags)
+int kernelns::mmap(void* start, physaddr_t p_start, size_t length, int flags)
 {
 	if((size_t) start % 4096 != 0 || p_start % 4096 != 0)
         return -1;
@@ -198,7 +198,7 @@ int kernel::mmap(void* start, physaddr_t p_start, size_t length, int flags)
 	return 0;
 }
 
-int kernel::mapPage(void* start, physaddr_t p_start, int flags)
+int kernelns::mapPage(void* start, physaddr_t p_start, int flags)
 {
 	if((size_t) start % 4096 != 0 || p_start % 4096 != 0)
         return -1;
@@ -228,7 +228,7 @@ int kernel::mapPage(void* start, physaddr_t p_start, int flags)
 	return 0;
 }
 
-int kernel::munmap(void* start, size_t length)
+int kernelns::munmap(void* start, size_t length)
 {
     if((size_t) start % 4096 != 0)
 		return -1;
@@ -250,7 +250,7 @@ int kernel::munmap(void* start, size_t length)
 	return 0;
 }
 
-bool kernel::isMapped(void* addr)
+bool kernelns::isMapped(void* addr)
 {
     PageTableEntry* pageDirectory = (PageTableEntry*) 0xFFFFF000;
     size_t tableIndex = (size_t) addr / 4096;
@@ -263,14 +263,14 @@ bool kernel::isMapped(void* addr)
     return false;
 }
 
-physaddr_t kernel::getPhysicalAddress(void* addr)
+physaddr_t kernelns::getPhysicalAddress(void* addr)
 {
     PageTableEntry* pageTables = (PageTableEntry*) 0xFFC00000;
     size_t tableIndex = (size_t) addr / 4096;
     return pageTables[tableIndex].getPhysicalAddress() + ((size_t) addr & 0xFFF);
 }
 
-int kernel::createAddressSpace(void* table)
+int kernelns::createAddressSpace(void* table)
 {
 	if(((size_t) table & 0xFFF) != 0)
 		return -1;
@@ -281,7 +281,7 @@ int kernel::createAddressSpace(void* table)
 	return 0;
 }
 
-int kernel::loadAddressSpace(physaddr_t table)
+int kernelns::loadAddressSpace(physaddr_t table)
 {
 	if((table & 0xFFF) != 0)
 		return -1;

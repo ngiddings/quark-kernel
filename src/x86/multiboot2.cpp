@@ -1,6 +1,6 @@
 #include "multiboot2.hpp"
 
-using namespace kernel;
+using namespace kernelns;
 
 Multiboot2Info::Multiboot2Info(void* tableLocation)
 {

@@ -1,23 +1,23 @@
 #include "elf.hpp"
 #include "util.hpp"
 
-kernel::ELF::ELF()
+kernelns::ELF::ELF()
 {
     this->m_fileLocation = (void*) NULL;
 }
 
-kernel::ELF::ELF(void* location)
+kernelns::ELF::ELF(void* location)
 {
     this->m_fileLocation = location;
 }
 
-void* kernel::ELF::entry()
+void* kernelns::ELF::entry()
 {
     Header* fileHeader = (Header*) m_fileLocation;
     return fileHeader->entry;
 }
 
-int kernel::ELF::validate()
+int kernelns::ELF::validate()
 {
     Header* fileHeader = (Header*) m_fileLocation;
     if(fileHeader->magic != 0x464c457f)
@@ -29,7 +29,7 @@ int kernel::ELF::validate()
     return 0;
 }
 
-int kernel::ELF::load()
+int kernelns::ELF::load()
 {
     Header* fileHeader = (Header*) m_fileLocation;
     ProgramHeader* programHeader = (ProgramHeader*) ((size_t) m_fileLocation + fileHeader->phoffset);

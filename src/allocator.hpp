@@ -3,7 +3,7 @@
 
 #include <stddef.h>
 
-namespace kernel
+namespace kernelns
 {
 
 class Allocator

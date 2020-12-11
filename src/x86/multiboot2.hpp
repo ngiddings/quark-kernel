@@ -4,7 +4,7 @@
 #include "../memorymap.hpp"
 #include "../module.hpp"
 
-namespace kernel
+namespace kernelns
 {
 
 class Multiboot2Info

@@ -5,7 +5,7 @@
 
 #include "process.hpp"
 
-namespace kernel
+namespace kernelns
 {
 
 class ProcessQueue

@@ -19,6 +19,8 @@ extern "C" void* malloc(size_t size);
 
 extern "C" void* calloc(size_t count, size_t size);
 
+extern "C" void* realloc(void* ptr, size_t size);
+
 extern "C" void free(void* p);
 
 extern "C" void __cxa_pure_virtual();

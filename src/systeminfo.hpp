@@ -6,7 +6,7 @@
 #include "systypes.hpp"
 #include "memorymap.hpp"
 
-namespace kernel
+namespace kernelns
 {
 
 class SystemInfo

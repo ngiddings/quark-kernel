@@ -2,19 +2,26 @@
 #define PROCESS_H
 
 #include <stddef.h>
+#include "map.hpp"
 
-namespace kernel
+namespace kernelns
 {
 
 class Process
 {
 public:
 
-    Process();
-
     size_t priority;
 
     void* stack;
+
+    Process();
+
+    bool hasSharedBlock(unsigned int blockID) const;
+
+private:
+
+    Map<unsigned int, MemoryBlock&> m_sharedBlocks;
 
 };
 

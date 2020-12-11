@@ -1,7 +1,7 @@
 #include <stdbool.h>
 #include "tty.hpp"
 
-kernel::TTY::TTY(char* vga)
+kernelns::TTY::TTY(char* vga)
 {
 	this->vga = vga;
 	this->cursor = 0;
@@ -9,7 +9,7 @@ kernel::TTY::TTY(char* vga)
 	this->base = 10;
 }
 
-kernel::TTY& kernel::TTY::operator<<(kernel::TTY::Format fmt)
+kernelns::TTY& kernelns::TTY::operator<<(kernelns::TTY::Format fmt)
 {
 	switch(fmt)
 	{
@@ -25,42 +25,42 @@ kernel::TTY& kernel::TTY::operator<<(kernel::TTY::Format fmt)
 	}
 }
 
-kernel::TTY& kernel::TTY::operator<<(const char* str)
+kernelns::TTY& kernelns::TTY::operator<<(const char* str)
 {
 	return printString(str);
 }
 
-kernel::TTY& kernel::TTY::operator<<(unsigned int n)
+kernelns::TTY& kernelns::TTY::operator<<(unsigned int n)
 {
 	return printNumber(n, base, width);
 }
 
-kernel::TTY& kernel::TTY::operator<<(int n)
+kernelns::TTY& kernelns::TTY::operator<<(int n)
 {
 	return printNumber((unsigned int) n, base, width);
 }
 
-kernel::TTY& kernel::TTY::operator<<(void* n)
+kernelns::TTY& kernelns::TTY::operator<<(void* n)
 {
     return printNumber((unsigned int) n, 16, 8);
 }
 
-kernel::TTY& kernel::TTY::operator<<(char c)
+kernelns::TTY& kernelns::TTY::operator<<(char c)
 {
         return putChar(c);
 }
 
-void kernel::TTY::setWidth(size_t width)
+void kernelns::TTY::setWidth(size_t width)
 {
 	this->width = width;
 }
 
-size_t kernel::TTY::getWidth()
+size_t kernelns::TTY::getWidth()
 {
 	return width;
 }
 
-void kernel::TTY::clear()
+void kernelns::TTY::clear()
 {
 	for(int i = 0; i < 80*25; i++)
 	{
@@ -69,7 +69,7 @@ void kernel::TTY::clear()
 	cursor = 0;
 }
 
-kernel::TTY& kernel::TTY::printNumber(unsigned int n, size_t base,
+kernelns::TTY& kernelns::TTY::printNumber(unsigned int n, size_t base,
 					size_t width)
 {
 	const char* digits = "0123456789ABCDEF";
@@ -94,7 +94,7 @@ kernel::TTY& kernel::TTY::printNumber(unsigned int n, size_t base,
 	return *this;
 }
 
-kernel::TTY& kernel::TTY::printString(const char* str)
+kernelns::TTY& kernelns::TTY::printString(const char* str)
 {
 	while(*str)
 	{
@@ -104,7 +104,7 @@ kernel::TTY& kernel::TTY::printString(const char* str)
 	return *this;		     
 }
 
-kernel::TTY& kernel::TTY::putChar(char c)
+kernelns::TTY& kernelns::TTY::putChar(char c)
 {
 	switch(c)
 	{

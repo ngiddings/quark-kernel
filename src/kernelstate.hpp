@@ -7,7 +7,7 @@
 #include "scheduler.hpp"
 #include "systeminfo.hpp"
 
-namespace kernel
+namespace kernelns
 {
 
 class State

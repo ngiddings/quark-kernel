@@ -140,7 +140,7 @@ void syscallHandler(void* frame)
     
 }
 
-kernel::Interrupts::Interrupts()
+kernelns::Interrupts::Interrupts()
 {
     for(unsigned int i = 0; i <= MAX_SYSCALL_ID; i++)
         syscalls[i] = (void*) NULL;
@@ -152,17 +152,17 @@ kernel::Interrupts::Interrupts()
     lidt();
 }
 
-void kernel::Interrupts::enable()
+void kernelns::Interrupts::enable()
 {
     asm("sti");
 }
 
-void kernel::Interrupts::disable()
+void kernelns::Interrupts::disable()
 {
     asm("cli");
 }
 
-void kernel::Interrupts::addSyscall(unsigned int id, void* function)
+void kernelns::Interrupts::addSyscall(unsigned int id, void* function)
 {
     if(id <= MAX_SYSCALL_ID)
         syscalls[id] = function;
