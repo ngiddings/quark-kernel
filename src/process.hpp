@@ -19,9 +19,13 @@ public:
 
     bool hasSharedBlock(unsigned int blockID) const;
 
+    bool hasPhysicalBlock(unsigned int blockID) const;
+
 private:
 
     Map<unsigned int, MemoryBlock&> m_sharedBlocks;
+
+    Map<unsigned int, MemoryBlock&> m_physicalBlocks;
 
 };
 

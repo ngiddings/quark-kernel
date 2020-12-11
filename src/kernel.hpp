@@ -3,6 +3,7 @@
 
 #include "pageallocator.hpp"
 #include "memorymanager.hpp"
+#include "memorymap.hpp"
 #include "memoryblock.hpp"
 #include "process.hpp"
 #include "systypes.hpp"
@@ -65,19 +66,63 @@ public:
 
     unsigned int createSharedBlock(size_t length, int flags);
 
-    void deleteSharedBlock(unsigned int id);
-
     const MemoryBlock& getSharedBlock(unsigned int id);
 
-    const Process& getActiveProcess();
+    /**
+     * @brief Get the process object corresponsing to 'pid'
+     * 
+     * @param pid id of the process to fetch
+     * @returns a reference to the requested process
+     */
+    Process& getProcess(unsigned int pid);
 
-    const Process& switchProcess();
+    /**
+     * @brief Get the current active process object.
+     * 
+     * @returns a reference to the active process
+     */
+    Process& getActiveProcess();
+
+    /**
+     * @brief Puts the current active process back on the run queue, and sets
+     * the active process to the next one selected by the scheduler.
+     * 
+     * @returns a reference to the new active process
+     */
+    Process& yieldActiveProcess();
+
+    /**
+     * @brief Puts the current active process to sleep, and sets the active
+     * process to the next one selected by the scheduler.
+     * 
+     * @returns a reference to the new active process
+     */
+    Process& sleepActiveProcess();
+
+    /**
+     * @brief Terminates the current active process, freeing all its resources,
+     * and activates the next process selected by the scheduler.
+     * 
+     * @return Process& 
+     */
+    Process& terminateActiveProcess();
+
+    /**
+     * @brief Terminates the process with id 'pid', freeing all its resources.
+     * If it holds any shared blocks which are not held by any other process,
+     * those blocks will be freed.
+     * 
+     * @param pid pid of the process to terminate
+     */
+    void terminateProcess(unsigned int pid);
 
 private:
 
     PageAllocator& pageAllocator;
 
     MemoryManager& mmgr;
+
+    MemoryMap& memoryMap;
 
 };
 
