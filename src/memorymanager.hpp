@@ -1,11 +1,18 @@
 #ifndef MEMORYMANAGER_H
 #define MEMORYMANAGER_H
 
-#include "systypes.h"
+#include "systypes.hpp"
 
 class MemoryManager
 {
 public:
+
+    /**
+     * @brief Returns the size of a single page on the present platform.
+     * 
+     * @return the size in bytes of a single page
+     */
+    virtual unsigned int pageSize() const = 0;
 
     /**
      * Allocates space for a new top-level page table, and initializes it to
@@ -40,10 +47,8 @@ public:
      * after the owning process ends.
      *
      * @param page the virtual address of the page to unmap
-     *
-     * @returns zero upon success, nonzero on failure
      */
-    virtual int unmapPage(void* page) = 0;
+    virtual physaddr_t unmapPage(void* page) = 0;
 
 };
 
