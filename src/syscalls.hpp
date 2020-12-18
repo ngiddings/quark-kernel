@@ -3,6 +3,7 @@
 
 #include <stddef.h>
 #include "systypes.hpp"
+#include "message.hpp"
 
 int mmap(void* location, size_t length, int flags);
 
@@ -19,5 +20,9 @@ int querySharedBlock(void* info, int id);
 int aquirePhysicalBlock(void* location, physaddr_t physicalAddress, size_t length);
 
 int releasePhysicalBlock(int id);
+
+int sendMessage(unsigned int recipient, const Message* message);
+
+int receiveMessage(Message* buffer);
 
 #endif

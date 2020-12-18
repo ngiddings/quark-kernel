@@ -1,7 +1,7 @@
 #include <stdint.h>
 
 #include "util.hpp"
-#include "kernelstate.hpp"
+#include "kernel.hpp"
 
 void* memcpy(void* destination, const void* source, size_t num)
 {
@@ -112,25 +112,31 @@ char* strcpy(char* destination, const char* source)
 
 void* malloc(size_t size)
 {
-	return kernelns::State::allocator.allocate(size);
+	return kernel.malloc(size);
 }
 
 void* calloc(size_t count, size_t size)
 {
-	return memset(malloc(count * size), 0, count * size);
+	void* ptr = malloc(count * size);
+	if(ptr != nullptr)
+		memset(malloc(count * size), 0, count * size);
+	return ptr;
 }
 
 void* realloc(void* ptr, size_t size)
 {
-	void* n = kernelns::State::allocator.allocate(size);
-	memmove(n, ptr, size);
-	free(ptr);
+	void* n = kernel.malloc(size);
+	if(n != nullptr)
+	{
+		memmove(n, ptr, size);
+		free(ptr);
+	}
 	return n;
 }
 
 void free(void* p)
 {
-	kernelns::State::allocator.free(p);
+	kernel.free(p);
 }
 
 void __cxa_pure_virtual()

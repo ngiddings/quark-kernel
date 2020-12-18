@@ -1,4 +1,5 @@
 #include "multiboot2.hpp"
+#include "../memorytype.hpp"
 
 using namespace kernelns;
 
@@ -11,31 +12,35 @@ Multiboot2Info::Multiboot2Info(void* tableLocation)
     ptr += 2;
     while(*ptr != 0)
     {
-        if(*ptr == T_BootCommand)
+        if(*ptr == (uint32_t) Tag::BootCommand)
         {
             m_commandLine = &reinterpret_cast<TagString*>(ptr)->str;
         }
-        else if(*ptr == T_Bootloader)
+        else if(*ptr == (uint32_t) Tag::Bootloader)
         {
             m_bootloader = &reinterpret_cast<TagString*>(ptr)->str;
         }
-        else if(*ptr == T_MemoryMap)
+        else if(*ptr == (uint32_t) Tag::MemoryMap)
         {
             unsigned int tagSize = reinterpret_cast<TagMemoryMap*>(ptr)->size - 16;
             unsigned int entrySize = reinterpret_cast<TagMemoryMap*>(ptr)->entrySize;
             MemoryMapEntry* entry = &reinterpret_cast<TagMemoryMap*>(ptr)->entries;
             while(tagSize > 0)
             {
-                m_memmap.insertEntry(entry->base, entry->length, (MemoryMap::Type) entry->type);
+                unsigned int regionType = 
+                    (entry->type == (unsigned int) Multiboot2MemoryType::Available) ? (unsigned int) MemoryType::Available
+                    : ((entry->type == (unsigned int) Multiboot2MemoryType::Defective) ? (unsigned int) MemoryType::Defective
+                    : (unsigned int) MemoryType::Unavailable);
+                m_memmap.insertEntry(entry->base, entry->length, entry->type);
                 entry = (MemoryMapEntry*) (reinterpret_cast<char*>(entry) + entrySize);
                 tagSize -= entrySize;
             }
         }
-        else if(*ptr == T_Module)
+        else if(*ptr == (uint32_t) Tag::Module)
         {
             TagModule* moduleTag = reinterpret_cast<TagModule*>(ptr);
             m_modules[m_moduleCount] = Module(moduleTag->start, moduleTag->end, &moduleTag->str);
-            m_memmap.insertEntry(moduleTag->start, moduleTag->end - moduleTag->start, MemoryMap::UNAVAILABLE);
+            m_memmap.insertEntry(moduleTag->start, moduleTag->end - moduleTag->start, (unsigned int) MemoryType::Unavailable);
         }
         unsigned int size = (ptr[1] + 7) - ((ptr[1] + 7) % 8);
         ptr += size / sizeof(uint32_t);

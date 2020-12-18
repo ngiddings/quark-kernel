@@ -4,7 +4,7 @@
 #include "pageallocator.hpp"
 #include "memorymanager.hpp"
 #include "memorymap.hpp"
-#include "memoryblock.hpp"
+#include "sharedblock.hpp"
 #include "process.hpp"
 #include "systypes.hpp"
 
@@ -13,6 +13,10 @@ using namespace kernelns;
 class Kernel
 {
 public:
+
+    void* malloc(size_t size);
+
+    void free(void* ptr);
 
     /**
      * @brief Maps a region of pages starting at virtual address 'page' with
@@ -64,9 +68,30 @@ public:
      */
     void unmapRegion(void* page, size_t length);
 
+    /**
+     * @brief Create a Shared Block object
+     * 
+     * @param length 
+     * @param flags 
+     * @returns The ID of the
+     */
     unsigned int createSharedBlock(size_t length, int flags);
 
-    const MemoryBlock& getSharedBlock(unsigned int id);
+    /**
+     * @brief Get the shared memory block referred to by 'id'
+     * 
+     * @param id 
+     * @returns a reference 
+     */
+    const SharedBlock& getSharedBlock(unsigned int id);
+
+    /**
+     * @brief Create a new process
+     * 
+     * @param imageBlockID 
+     * @return Process& 
+     */
+    Process& createProcess(unsigned int imageBlockID);
 
     /**
      * @brief Get the process object corresponsing to 'pid'
@@ -112,7 +137,7 @@ public:
      * If it holds any shared blocks which are not held by any other process,
      * those blocks will be freed.
      * 
-     * @param pid pid of the process to terminate
+     * @param pid id of the process to terminate
      */
     void terminateProcess(unsigned int pid);
 

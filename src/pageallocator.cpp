@@ -1,6 +1,7 @@
 #include "pageallocator.hpp"
 #include "systypes.hpp"
 #include "memorymap.hpp"
+#include "memorytype.hpp"
 
 #define roundUp(n, m) ((n % m == 0) ? n : (n + m - (n % m)))
 
@@ -44,7 +45,7 @@ kernelns::BuddyAllocator::BuddyAllocator(const kernelns::MemoryMap& memmap,
 	physaddr_t location = 0x100000;
 	for(size_t i = 0; i < memmap.size() && memmap[i].getSize() > 0; i++)
 	{
-		if(memmap[i].getType() != kernelns::MemoryMap::AVAILABLE)
+		if(memmap[i].getType() != (unsigned int) MemoryType::Available)
 			continue;
 		if(memmap[i].getLocation() > location)
 			location = roundUp(memmap[i].getLocation(), 4096);

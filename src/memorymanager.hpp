@@ -12,7 +12,7 @@ public:
      * 
      * @return the size in bytes of a single page
      */
-    virtual unsigned int pageSize() const = 0;
+    virtual unsigned int getPageSize() const = 0;
 
     /**
      * Allocates space for a new top-level page table, and initializes it to

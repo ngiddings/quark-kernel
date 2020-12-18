@@ -11,29 +11,36 @@ class Multiboot2Info
 {
 public:
 
-    enum TagType
+    enum class Tag
     {
-        T_BootCommand = 1,
-        T_Bootloader = 2,
-        T_Module = 3,
-        T_MemoryInfo = 4,
-        T_BIOSBootDevice = 5,
-        T_MemoryMap = 6,
-        T_VBE = 7,
-        T_Framebuffer = 8,
-        T_ELFSymbols = 9,
-        T_APM = 10,
-        T_EFI32SystemTable = 11,
-        T_EFI64SystemTable = 12,
-        T_SMBIOS = 13,
-        T_ACPI10RSDP = 14,
-        T_ACPT20RSDP = 15,
-        T_Network = 16,
-        T_EFIMemoryMap = 17,
-        T_EFIBootServices = 18,
-        T_EFI32Image = 19,
-        T_EFI64Image = 20,
-        T_LoadAddress = 21
+        BootCommand = 1,
+        Bootloader = 2,
+        Module = 3,
+        MemoryInfo = 4,
+        BIOSBootDevice = 5,
+        MemoryMap = 6,
+        VBE = 7,
+        Framebuffer = 8,
+        ELFSymbols = 9,
+        APM = 10,
+        EFI32SystemTable = 11,
+        EFI64SystemTable = 12,
+        SMBIOS = 13,
+        ACPI10RSDP = 14,
+        ACPT20RSDP = 15,
+        Network = 16,
+        EFIMemoryMap = 17,
+        EFIBootServices = 18,
+        EFI32Image = 19,
+        EFI64Image = 20,
+        LoadAddress = 21
+    };
+
+    enum class Multiboot2MemoryType
+    {
+	    Available = 1,
+	    ACPI = 3,
+	    Defective = 5
     };
 
     struct TagString

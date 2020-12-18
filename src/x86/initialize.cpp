@@ -1,29 +1,13 @@
 #include <stdint.h>
 #include "multiboot2.hpp"
 #include "tty.hpp"
-#include "../kernelstate.hpp"
-#include "../systeminfo.hpp"
 #include "../mmap.hpp"
 #include "../util.hpp"
+#include "../memorytype.hpp"
 
 using namespace kernelns;
 
 extern int _kernelEnd;
-
-enum BootInfoType
-{
-    Terminate = 0,
-    CommandLine = 1,
-    BootLoader = 2,
-    Module = 3,
-    MemoryInfo = 4,
-    BootDevice = 5,
-    MMap = 6,
-    VBEInfo = 7,
-    FramebufferInfo = 8,
-    ELFSymbols = 9,
-    APMTable = 10
-};
 
 extern "C"
 int startPaging(uint32_t* directory, uint32_t* table, uint32_t* identityTable)
@@ -57,12 +41,12 @@ int initialize(void* multibootInfo)
     for(; heapSize > 1; log++)
         heapSize >>= 1;
     heapSize <<= log;
-    new(&State::allocator) Allocator((void*) (0xFFC00000 - heapSize), heapSize, 64);
+    //new(&State::allocator) Allocator((void*) (0xFFC00000 - heapSize), heapSize, 64);
     Multiboot2Info bootInfo(multibootInfo);
     if(!bootInfo.isValid())
         return 1;
-    bootInfo.getMemoryMap().insertEntry(0, 4 * 1024 * 1024, MemoryMap::UNAVAILABLE);
-    new(&State::config) SystemInfo(bootInfo.getMemoryMap(), bootInfo.getCommandLine());
+    bootInfo.getMemoryMap().insertEntry(0, 4 * 1024 * 1024, (unsigned int) MemoryType::Unavailable);
+    //new(&State::config) SystemInfo(bootInfo.getMemoryMap(), bootInfo.getCommandLine());
     TTY tty((char*) 0xFF8B8000);
     tty << "Type\t\tLocation\t\tSize\n";
     for(size_t i = 0; i < bootInfo.getMemoryMap().size() && bootInfo.getMemoryMap()[i].getSize() > 0; i++)
