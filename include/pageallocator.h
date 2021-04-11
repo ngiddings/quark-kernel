@@ -56,3 +56,11 @@ physaddr_t reserve_page(struct page_stack_t *stack);
  * @param location 
  */
 int free_page(struct page_stack_t *stack, physaddr_t location);
+
+/**
+ * @brief Computes the number of available pages.
+ * 
+ * @param stack 
+ * @return size_t 
+ */
+size_t free_page_count(struct page_stack_t *stack);
