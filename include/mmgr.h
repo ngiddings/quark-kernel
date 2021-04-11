@@ -1,5 +1,6 @@
 #pragma once
 
+#include "pageallocator.h"
 #include "types/physaddr.h"
 
 /**
@@ -9,7 +10,7 @@
  * 
  * @return physaddr_t 
  */
-physaddr_t create_address_space();
+physaddr_t create_address_space(struct page_stack_t *page_stack);
 
 /**
  * @brief Load an existing top-level page table
@@ -26,7 +27,7 @@ void load_address_space(physaddr_t table);
  * @param flags 
  * @return int 
  */
-int map_page(void *page, physaddr_t frame, int flags);
+int map_page(struct page_stack_t *page_stack, void *page, physaddr_t frame, int flags);
 
 /**
  * @brief Unmaps a single page, returning the physical address of the frame it
