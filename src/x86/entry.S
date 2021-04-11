@@ -124,7 +124,7 @@ _tempPgDir:
 _tempIdentityMap:
 .skip 4096
 _tempPgTable:
-.skip 8192
+.skip 4096
 
 _bootCmdLine:
 .skip 64
@@ -143,6 +143,9 @@ memory_map:
 .global _start
 .type _start, @function
 _start:
+	
+	cli
+
 	# This platform reqires a Multiboot2 bootloader.
 	cmp $0x36d76289, %eax
 	jne .err
@@ -211,12 +214,6 @@ _start:
 	# Call initialize(void* multibootInfo)
 	push %ebx
 	call initialize
-
-	# mov $_bootCmdLine, %eax
-	# push %eax
-	
-	# Call main function
-	# call main
 
 .err:
 	cli
