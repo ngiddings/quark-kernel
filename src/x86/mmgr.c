@@ -47,14 +47,14 @@ physaddr_t create_address_space(struct page_stack_t *page_stack)
         return S_OUT_OF_MEMORY;
     }
     struct page_table_entry_t buffer = page_directory[0];
-    page_directory[0] = table;
-    asm volatile("invlpg $0xFFC00000" ::
+    page_directory[0].physicalAddress = table >> page_bits;
+    asm volatile("invlpg 0xFFC00000" ::
                      : "memory");
     memset((void *)page_tables, 0, 1022 * 4);
     page_tables[1022] = page_directory[1022];
     page_tables[1023] = page_directory[1023];
     page_directory[0] = buffer;
-    asm volatile("invlpg $0xFFC00000" ::
+    asm volatile("invlpg 0xFFC00000" ::
                      : "memory");
     return table;
 }
@@ -82,12 +82,12 @@ int map_page(struct page_stack_t *page_stack, void *page, physaddr_t frame, int 
         {
             return S_OUT_OF_MEMORY;
         }
-        page_directory[directory_index] = new_table >> page_bits;
+        page_directory[directory_index].physicalAddress = new_table >> page_bits;
         page_directory[directory_index].present = 1;
         page_directory[directory_index].usermode = 0;
         page_directory[directory_index].rw = 1;
     }
-    page_tables[table_index] = frame >> 12;
+    page_tables[table_index].physicalAddress = frame >> 12;
     page_tables[table_index].present = 1;
     page_tables[table_index].usermode = 1;
     page_tables[table_index].rw = 1;
