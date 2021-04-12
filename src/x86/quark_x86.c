@@ -238,4 +238,5 @@ int initialize(void *multiboot_info)
         load_module(&kernel, &boot_info.modules[i]);
     }
     // TODO: enter first process
+    putchar('&');
 }
