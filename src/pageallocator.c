@@ -1,5 +1,4 @@
 #include "pageallocator.h"
-#include "types/memorytype.h"
 #include "types/status.h"
 
 physaddr_t reserve_page(struct page_stack_t *stack)

@@ -4,7 +4,6 @@
 #include "tty.h"
 #include "string.h"
 #include "module.h"
-#include "types/memorytype.h"
 #include <stdint.h>
 #include <stddef.h>
 
