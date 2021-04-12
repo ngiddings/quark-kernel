@@ -28,7 +28,7 @@ struct cell_t
     char bg : 4;
 };
 
-struct cell_t *screen = 0xFFCB8000;
+struct cell_t *screen = (struct cell_t*)0xFF8B8000;
 
 const size_t tab_width = 4;
 const size_t line_width = 80;
