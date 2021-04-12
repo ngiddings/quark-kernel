@@ -7,6 +7,8 @@
 #include <stdint.h>
 #include <stddef.h>
 
+#define module_limit 8
+
 enum isr_type_t
 {
     INTERRPUT_TASK32 = 5,
@@ -99,8 +101,6 @@ struct multiboot2_memory_map_t
     struct multiboot2_map_entry_t entries;
 };
 
-const size_t module_limit = 8;
-
 struct boot_info_t
 {
     char *bootloader;
@@ -158,7 +158,7 @@ void *read_multiboot_table(struct boot_info_t *boot_info, void *table)
     {
     case MB_END_TAG:
         return NULL;
-    case MB_MEMORY_MAP:
+    case MB_MEMORY_MAP: ;
         unsigned int tag_size = ((struct multiboot2_memory_map_t*) table)->size - 16;
         unsigned int entry_size = ((struct multiboot2_memory_map_t*) table)->entry_size;
         struct multiboot2_map_entry_t *entry = &((struct multiboot2_memory_map_t*) table)->entries;
