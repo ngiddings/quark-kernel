@@ -7,6 +7,15 @@
 #include <stdint.h>
 #include <stddef.h>
 
+enum isr_type_t
+{
+    INTERRPUT_TASK32 = 5,
+    INTERRPUT_TRAP32 = 15,
+    INTERRPUT_INT32 = 14,
+    INTERRPUT_TRAP16 = 7,
+    INTERRPUT_INT16 = 6
+};
+
 struct interrupt_descriptor_t
 {
     uint16_t m_offset1;
