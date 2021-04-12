@@ -123,7 +123,7 @@ int trim_map(struct memory_map_t *map, int index)
 void insert_region(struct memory_map_t *map, physaddr_t location, size_t size, unsigned int type)
 {
     insert_map_entry(map, location, size, type);
-    unsigned int i = 0;
+    int i = 0;
     while(i >= 0)
     {
         i = trim_map(map, i);
