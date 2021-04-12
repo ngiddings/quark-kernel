@@ -1,7 +1,7 @@
 #include "kernel.h"
 #include "pageallocator.h"
 #include "memorymap.h"
-#include "tty.h"
+#include "stdio.h"
 #include "string.h"
 #include "module.h"
 #include <stdint.h>
