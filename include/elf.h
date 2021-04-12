@@ -115,5 +115,3 @@ struct elf_section_header_t
 #elif defined __aarch64__
     static const elf_isa_t HOST_ISA = ELF_ISA_AARCH64;
 #endif
-
-int load_elf_executable(void *file);
