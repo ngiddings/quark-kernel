@@ -1,5 +1,6 @@
 #pragma once
 
+#include "memorymap.h"
 #include "types/physaddr.h"
 #include <stddef.h>
 
@@ -64,3 +65,11 @@ int free_page(struct page_stack_t *stack, physaddr_t location);
  * @return size_t 
  */
 size_t free_page_count(struct page_stack_t *stack);
+
+/**
+ * @brief Push all available pages in `map` onto the stack
+ * 
+ * @param stack 
+ * @param map 
+ */
+int initialize_page_stack(struct page_stack_t *stack, struct memory_map_t *map, size_t page_size);
