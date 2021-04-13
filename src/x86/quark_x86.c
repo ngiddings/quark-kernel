@@ -225,7 +225,7 @@ int initialize(void *multiboot_info)
     printf("Type\t\tLocation\t\tSize\n");
     for (size_t i = 0; i < boot_info.map.size && boot_info.map.array[i].size > 0; i++)
     {
-        printf("%i\t\t\t%08X\t\t%i\n", boot_info.map.array[i].type, boot_info.map.array[i].location, boot_info.map.array[i].size);
+        printf("%i\t\t\t%08x\t\t%u\n", boot_info.map.array[i].type, boot_info.map.array[i].location, boot_info.map.array[i].size);
     }
     page_stack.base_pointer = 0xFFC00000;
     page_stack.stack_pointer = 0xFFC00000;
@@ -238,5 +238,4 @@ int initialize(void *multiboot_info)
         load_module(&kernel, &boot_info.modules[i]);
     }
     // TODO: enter first process
-    putchar('&');
 }
