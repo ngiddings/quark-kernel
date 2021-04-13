@@ -118,6 +118,42 @@ struct page_stack_t page_stack;
 
 struct kernel_t kernel;
 
+__attribute__ ((interrupt))
+void genericISR(void* frame)
+{
+    
+}
+
+__attribute__ ((interrupt))
+void divisionByZero(void* frame)
+{
+    
+}
+
+__attribute__ ((interrupt))
+void gpFaultHandler(void* frame, unsigned int error)
+{
+    
+}
+
+__attribute__ ((interrupt))
+void pageFaultHandler(void* frame, unsigned int error)
+{
+    
+}
+
+__attribute__ ((interrupt))
+void doubleFaultHandler(void* frame, unsigned int error)
+{
+    asm("hlt");
+}
+
+__attribute__ ((interrupt))
+void syscallHandler(void* frame)
+{
+    
+}
+
 void lidt()
 {
     struct idt_info_t idt_info;
