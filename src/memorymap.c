@@ -5,11 +5,13 @@ int compare_regions(struct memory_region_t *lhs, struct memory_region_t *rhs)
 {
     if(lhs->location == rhs->location)
     {
-        return lhs->size - rhs->size;
+        return lhs->size > rhs->size ? 1
+            : (lhs->size == rhs->size ? 0
+            : -1);
     }
     else
     {
-        return lhs->location - rhs->location;
+        return lhs->location > rhs->location ? 1 : -1;
     }
 }
 
