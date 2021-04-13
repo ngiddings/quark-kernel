@@ -6,7 +6,7 @@
 enum memory_type_t
 {
     M_AVAILABLE = 1,
-    M_UNAVAILABLE = 1,
+    M_UNAVAILABLE = 2,
     M_DEFECTIVE = 3
 };
 
