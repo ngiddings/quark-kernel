@@ -29,6 +29,7 @@ struct cell_t
 };
 
 struct cell_t *screen = (struct cell_t*)0xFF8B8000;
+size_t cursor = 0;
 
 const size_t tab_width = 4;
 const size_t line_width = 80;
@@ -38,19 +39,20 @@ int putchar(int c)
     switch(c)
     {
     case '\n':
-        screen += line_width;
-        screen -= (size_t) screen % line_width;
+        cursor += line_width;
+        cursor -= cursor % line_width;
         break;
     case '\t':
-        screen += (tab_width) & ~(tab_width);
+        cursor += tab_width;
+        cursor -= cursor % tab_width;
         break;
     case '\r':
-        screen -= line_width - 1;
-        screen += line_width - ((size_t) screen % line_width);
+        cursor -= line_width - 1;
+        cursor += line_width - (cursor % line_width);
         break;
     default:
-        screen->c = (char) c;
-        screen++;
+        screen[cursor].c = (char) c;
+        cursor++;
     }
     return c;
 }
@@ -60,6 +62,7 @@ int puts(const char *str)
     while(*str)
     {
         putchar(*str);
+        str++;
     }
     return 0;
 }
