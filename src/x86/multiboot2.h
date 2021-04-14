@@ -1,6 +1,7 @@
 #pragma once
 
 #include "memorymap.h"
+#include "module.h"
 #include <stddef.h>
 #include <stdint.h>
 

@@ -1,4 +1,6 @@
 #include "multiboot2.h"
+#include "stdio.h"
+#include "string.h"
 
 void *read_multiboot_table(struct boot_info_t *boot_info, void *table)
 {
