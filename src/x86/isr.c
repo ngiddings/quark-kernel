@@ -1,12 +1,6 @@
 #include "isr.h"
 
 __attribute__ ((interrupt))
-void generic_isr(void* frame)
-{
-    
-}
-
-__attribute__ ((interrupt))
 void isr_division_by_zero(void* frame)
 {
     
