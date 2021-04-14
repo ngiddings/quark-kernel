@@ -2,50 +2,13 @@
 #include "pageallocator.h"
 #include "multiboot2.h"
 #include "memorymap.h"
+#include "interrupts.h"
 #include "stdio.h"
-#include "string.h"
 #include "module.h"
 #include <stdint.h>
 #include <stddef.h>
 
-enum isr_type_t
-{
-    INTERRPUT_TASK32 = 5,
-    INTERRPUT_TRAP32 = 15,
-    INTERRPUT_INT32 = 14,
-    INTERRPUT_TRAP16 = 7,
-    INTERRPUT_INT16 = 6
-};
-
-struct interrupt_descriptor_t
-{
-    uint16_t m_offset1;
-    uint16_t m_selector;
-    uint16_t m_zero : 8;
-    uint16_t m_type : 4;
-    uint16_t m_storage : 1;
-    uint16_t m_dpl : 2;
-    uint16_t m_present : 1;
-    uint16_t m_offset2;
-};
-
-struct idt_info_t
-{
-    uint16_t size;
-    void *location;
-};
-
 extern int _kernelEnd;
-
-void lidt(struct interrupt_descriptor_t *idt)
-{
-    struct idt_info_t idt_info;
-    idt_info.size = sizeof(idt) - 1;
-    idt_info.location = (void *)&idt;
-    asm("lidt (%0)"
-        :
-        : "r"(&idt_info));
-}
 
 int startPaging(uint32_t *directory, uint32_t *table, uint32_t *identityTable)
 {
@@ -106,6 +69,6 @@ int initialize(void *multiboot_info)
         load_module(&kernel, &boot_info.modules[i]);
     }
     // TODO: setup IDT
-
+    
     // TODO: enter first process
 }
