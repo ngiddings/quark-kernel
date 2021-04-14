@@ -1,37 +1,37 @@
 #include "isr.h"
 
 __attribute__ ((interrupt))
-void genericISR(void* frame)
+void generic_isr(void* frame)
 {
     
 }
 
 __attribute__ ((interrupt))
-void divisionByZero(void* frame)
+void isr_division_by_zero(void* frame)
 {
     
 }
 
 __attribute__ ((interrupt))
-void gpFaultHandler(void* frame, unsigned int error)
+void isr_gp_fault(void* frame, unsigned int error)
 {
     
 }
 
 __attribute__ ((interrupt))
-void pageFaultHandler(void* frame, unsigned int error)
+void isr_page_fault(void* frame, unsigned int error)
 {
     
 }
 
 __attribute__ ((interrupt))
-void doubleFaultHandler(void* frame, unsigned int error)
+void isr_double_fault(void* frame, unsigned int error)
 {
     asm("hlt");
 }
 
 __attribute__ ((interrupt))
-void syscallHandler(void* frame)
+void isr_syscall(void* frame)
 {
     
 }
