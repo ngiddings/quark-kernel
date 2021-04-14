@@ -35,8 +35,6 @@ struct idt_info_t
     void *location;
 };
 
-
-
 extern int _kernelEnd;
 
 void lidt(struct interrupt_descriptor_t *idt)
@@ -103,8 +101,6 @@ int initialize(void *multiboot_info)
     page_stack.stack_pointer = 0xFFC00000;
     page_stack.limit_pointer = 0xFF900000;
     initialize_page_stack(&page_stack, &boot_info.map, 4096);
-    
-    // TODO: Initialize process queue
     for(int i = 0; i < boot_info.module_count; i++)
     {
         load_module(&kernel, &boot_info.modules[i]);
