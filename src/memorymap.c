@@ -90,7 +90,10 @@ int trim_map(struct memory_map_t *map, int index)
             }
             else
             {
-                struct memory_region_t new_right = {.location = right.location + right.size, .size = (left.location + left.size) - (right.location + right.size), .type = left.type};
+                struct memory_region_t new_right = {
+                    .location = right.location + right.size, 
+                    .size = (left.location + left.size) - (right.location + right.size), 
+                    .type = left.type};
                 left.size = (right.location > left.location) ? right.location - left.location : 0;
                 if(left.size == 0)
                     remove_map_entry(map, index);
