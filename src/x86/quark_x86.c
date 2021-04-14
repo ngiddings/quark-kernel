@@ -1,13 +1,12 @@
 #include "kernel.h"
 #include "pageallocator.h"
+#include "multiboot2.h"
 #include "memorymap.h"
 #include "stdio.h"
 #include "string.h"
 #include "module.h"
 #include <stdint.h>
 #include <stddef.h>
-
-#define module_limit 8
 
 enum isr_type_t
 {
@@ -36,125 +35,11 @@ struct idt_info_t
     void *location;
 };
 
-enum multiboot2_tag_types
-{
-    MB_END_TAG = 0,
-    MB_BOOT_COMMAND = 1,
-    MB_BOOTLOADER = 2,
-    MB_MODULE = 3,
-    MB_MEMORY_INFO = 4,
-    MB_BIOS_BOOT_DEVICE = 5,
-    MB_MEMORY_MAP = 6,
-    MB_VBE = 7,
-    MB_FRAMEBUFFER = 8,
-    MB_ELF_SYMBOLS = 9,
-    MB_APM = 10,
-    MB_EFI32_SYSTEM_TABLE = 11,
-    MB_EFI64_SYSTEM_TABLE = 12,
-    MB_SMBIOS = 13,
-    MB_ACPI10_RSDP = 14,
-    MB_ACPT20_RSDP = 15,
-    MB_NETOWRK = 16,
-    MB_EFI_MEMORY_MAP = 17,
-    MB_EFI_BOOT_SERVICES = 18,
-    MB_EFI32_IMAGE = 19,
-    MB_EFI64_IMAGE = 20,
-    MB_LOAD_ADDRESS = 21
-};
 
-enum multiboot2_memory_types
-{
-    MB_AVAILABLE = 1,
-	MB_ACPI = 3,
-	MB_DEFECTIVE = 5
-};
-
-struct multiboot2_string_t
-{
-    uint32_t type;
-    uint32_t size;
-    char str;
-};
-
-struct multiboot2_module_t
-{
-    uint32_t type;
-    uint32_t size;
-    uint32_t start;
-    uint32_t end;
-    char str;
-};
-
-struct multiboot2_map_entry_t
-{
-    uint64_t base;
-    uint64_t length;
-    uint32_t type;
-};
-
-struct multiboot2_memory_map_t
-{
-    uint32_t type;
-    uint32_t size;
-    uint32_t entry_size;
-    uint32_t entry_version;
-    struct multiboot2_map_entry_t entries;
-};
-
-struct boot_info_t
-{
-    char *bootloader;
-    char *parameters;
-    size_t module_count;
-    struct memory_map_t map;
-    struct module_t modules[module_limit];
-};
 
 extern int _kernelEnd;
 
-struct interrupt_descriptor_t idt[256];
-
-struct page_stack_t page_stack;
-
-struct kernel_t kernel;
-
-__attribute__ ((interrupt))
-void genericISR(void* frame)
-{
-    
-}
-
-__attribute__ ((interrupt))
-void divisionByZero(void* frame)
-{
-    
-}
-
-__attribute__ ((interrupt))
-void gpFaultHandler(void* frame, unsigned int error)
-{
-    
-}
-
-__attribute__ ((interrupt))
-void pageFaultHandler(void* frame, unsigned int error)
-{
-    
-}
-
-__attribute__ ((interrupt))
-void doubleFaultHandler(void* frame, unsigned int error)
-{
-    asm("hlt");
-}
-
-__attribute__ ((interrupt))
-void syscallHandler(void* frame)
-{
-    
-}
-
-void lidt()
+void lidt(struct interrupt_descriptor_t *idt)
 {
     struct idt_info_t idt_info;
     idt_info.size = sizeof(idt) - 1;
@@ -187,60 +72,11 @@ int startPaging(uint32_t *directory, uint32_t *table, uint32_t *identityTable)
     return 0;
 }
 
-void *read_multiboot_table(struct boot_info_t *boot_info, void *table)
-{
-    uint32_t *int_table = (uint32_t *)table;
-    switch (*int_table)
-    {
-    case MB_END_TAG:
-        return NULL;
-    case MB_MEMORY_MAP: ;
-        unsigned int tag_size = ((struct multiboot2_memory_map_t*) table)->size - 16;
-        unsigned int entry_size = ((struct multiboot2_memory_map_t*) table)->entry_size;
-        struct multiboot2_map_entry_t *entry = &((struct multiboot2_memory_map_t*) table)->entries;
-        while(tag_size)
-        {
-            unsigned int entry_type = 
-                entry->type == MB_AVAILABLE ? M_AVAILABLE 
-                : (entry->type == MB_DEFECTIVE ? M_DEFECTIVE
-                : M_UNAVAILABLE);
-            insert_region(&boot_info->map, entry->base, entry->length, entry_type);
-            entry = (struct multiboot2_map_entry_t*) ((void*) entry + entry_size);
-            tag_size -= entry_size;
-        }
-        break;
-    case MB_MODULE:
-        if(boot_info->module_count < 8)
-        {
-            boot_info->modules[boot_info->module_count].start = ((struct multiboot2_module_t*) table)->start;
-            boot_info->modules[boot_info->module_count].end = ((struct multiboot2_module_t*) table)->end;
-            strcpy(boot_info->modules[boot_info->module_count].str, ((struct multiboot2_module_t*) table)->str);
-            insert_region(&boot_info->map, 
-                ((struct multiboot2_module_t*) table)->start, 
-                ((struct multiboot2_module_t*) table)->end - ((struct multiboot2_module_t*) table)->start, 
-                M_UNAVAILABLE);
-            boot_info->module_count++;
-        }
-        else
-        {
-            printf("WARNING: Too many modules, must skip one.\n");
-        }
-        break;
-    case MB_BOOT_COMMAND:
-        strcpy(boot_info->parameters, &((struct multiboot2_string_t*) table)->str);
-        break;
-    case MB_BOOTLOADER:
-        strcpy(boot_info->bootloader, &((struct multiboot2_string_t*) table)->str);
-        break;
-    default:
-        break;
-    }
-    size_t size = (int_table[1] + 7) - ((int_table[1] + 7) % 8);
-    return table + size;
-}
-
 int initialize(void *multiboot_info)
 {
+    static struct interrupt_descriptor_t idt[256];
+    static struct page_stack_t page_stack;
+    static struct kernel_t kernel;
     struct memory_region_t map_array[16];
     char bootloader_name[64];
     char kernel_parameters[64];
@@ -273,5 +109,7 @@ int initialize(void *multiboot_info)
     {
         load_module(&kernel, &boot_info.modules[i]);
     }
+    // TODO: setup IDT
+
     // TODO: enter first process
 }
