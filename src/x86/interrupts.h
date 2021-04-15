@@ -2,7 +2,7 @@
 
 #include <stdint.h>
 
-enum exception_code_t
+enum interrupt_code_t
 {
     EXCEPTION_DIV_BY_0 = 0,
     EXCEPTION_DEBUG = 1,
@@ -23,7 +23,9 @@ enum exception_code_t
     EXCEPTION_MACHINE_CHECK = 18,
     EXCEPTION_SIMD_FLOATING_POINT = 19,
     EXCEPTION_VIRTUALIZATION = 20,
-    EXCEPTION_SECURITY = 30
+    EXCEPTION_SECURITY = 30,
+    ISR_AP_START = 127,
+    ISR_SYSCALL = 128
 };
 
 enum isr_type_t
