@@ -12,7 +12,7 @@ void isr_page_fault(void* frame, unsigned int error);
 __attribute__ ((interrupt))
 void isr_double_fault(void* frame, unsigned int error);
 
-__attribute__ ((interrupt, naked))
+__attribute__ ((naked))
 void isr_ap_start(void* frame);
 
 __attribute__ ((interrupt))
