@@ -1,5 +1,6 @@
 #include "isr.h"
 #include "stdio.h"
+#include "apic.h"
 
 __attribute__ ((interrupt))
 void isr_division_by_zero(void* frame)
@@ -23,6 +24,13 @@ __attribute__ ((interrupt))
 void isr_double_fault(void* frame, unsigned int error)
 {
     asm("hlt");
+}
+
+__attribute__ ((interrupt))
+void isr_timer(void* frame)
+{
+    printf("Timer tick.\n");
+    apic_eoi();
 }
 
 __attribute__ ((naked))
