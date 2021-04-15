@@ -4,13 +4,13 @@ struct idt_info_t
 {
     uint16_t size;
     void *location;
-};
+} __attribute__ ((packed));
 
 void lidt(struct interrupt_descriptor_t *idt)
 {
     struct idt_info_t idt_info;
-    idt_info.size = sizeof(idt) - 1;
-    idt_info.location = (void *)&idt;
+    idt_info.size = sizeof(struct interrupt_descriptor_t) * 256 - 1;
+    idt_info.location = (void *)idt;
     asm("lidt (%0)"
         :
         : "r"(&idt_info));
