@@ -4,6 +4,7 @@
 #include "memorymap.h"
 #include "apic.h"
 #include "interrupts.h"
+#include "msr.h"
 #include "stdio.h"
 #include "string.h"
 #include "module.h"
@@ -11,7 +12,7 @@
 #include <stdint.h>
 #include <stddef.h>
 
-extern int _kernelEnd;
+extern int _kernel_end;
 
 struct apic_registers_t volatile *apic_registers;
 
@@ -75,11 +76,13 @@ int initialize(void *multiboot_info)
     }
     // TODO: setup IDT
     memset(idt, 0, sizeof(struct interrupt_descriptor_t) * 256);
-    create_interrupt_descriptor(&idt[EXCEPTION_DIV_BY_0], (void*)isr_division_by_zero, INTERRPUT_INT32, 3);
-    create_interrupt_descriptor(&idt[EXCEPTION_GPF], (void*)isr_gp_fault, INTERRPUT_INT32, 3);
-    create_interrupt_descriptor(&idt[EXCEPTION_PAGE_FAULT], (void*)isr_page_fault, INTERRPUT_INT32, 3);
-    create_interrupt_descriptor(&idt[EXCEPTION_DOUBLE_FAULT], (void*)isr_double_fault, INTERRPUT_INT32, 3);
-    create_interrupt_descriptor(&idt[0x80], (void*)isr_syscall, INTERRPUT_INT32, 3);
+    create_interrupt_descriptor(&idt[EXCEPTION_DIV_BY_0], (void*)isr_division_by_zero, INTERRPUT_INT32, 0);
+    create_interrupt_descriptor(&idt[EXCEPTION_GPF], (void*)isr_gp_fault, INTERRPUT_INT32, 0);
+    create_interrupt_descriptor(&idt[EXCEPTION_PAGE_FAULT], (void*)isr_page_fault, INTERRPUT_INT32, 0);
+    create_interrupt_descriptor(&idt[EXCEPTION_DOUBLE_FAULT], (void*)isr_double_fault, INTERRPUT_INT32, 0);
+    create_interrupt_descriptor(&idt[ISR_AP_START], (void*)isr_ap_start, INTERRPUT_INT32, 0);
+    create_interrupt_descriptor(&idt[ISR_SYSCALL], (void*)isr_syscall, INTERRPUT_INT32, 0);
+    lidt(idt);
 
     // TODO: setup APIC
     asm volatile(
@@ -89,5 +92,11 @@ int initialize(void *multiboot_info)
         ::: "al"
     );
     apic_enable();
+    struct msr_apic_base_t msr;
+    read_msr(MSR_APIC_BASE, (uint64_t*)&msr);
+    msr.apic_base = (size_t) &_kernel_end >> 12;
+    write_msr(MSR_APIC_BASE, (uint64_t*)&msr);
+    printf("MSR_APIC_BASE: %016x\n", *((uint32_t*)&msr));
+    apic_registers = (struct apic_registers_t*) (msr.apic_base << 12);
     // TODO: enter first process
 }
