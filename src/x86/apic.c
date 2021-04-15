@@ -1,8 +1,18 @@
+#include "mmgr.h"
 #include "apic.h"
+#include "msr.h"
+#include <stddef.h>
 
-void apic_enable()
+extern int _kernel_end;
+
+void apic_enable(struct page_stact_t *page_stack)
 {
-
+    struct msr_apic_base_t msr;
+    read_msr(MSR_APIC_BASE, (uint64_t*)&msr);
+    map_page(page_stack, &_kernel_end, msr.apic_base << 12, 0);
+    printf("MSR_APIC_BASE: %016x\n", *((uint32_t*)&msr));
+    apic_registers = (struct apic_registers_t*)&_kernel_end;
+    apic_registers->spurious_iv.value = apic_registers->spurious_iv.value | 0x100;
 }
 
 void apic_eoi()
