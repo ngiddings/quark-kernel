@@ -2,13 +2,18 @@
 #include "pageallocator.h"
 #include "multiboot2.h"
 #include "memorymap.h"
+#include "apic.h"
 #include "interrupts.h"
 #include "stdio.h"
+#include "string.h"
 #include "module.h"
+#include "isr.h"
 #include <stdint.h>
 #include <stddef.h>
 
 extern int _kernelEnd;
+
+struct apic_registers_t volatile *apic_registers;
 
 int startPaging(uint32_t *directory, uint32_t *table, uint32_t *identityTable)
 {
@@ -60,15 +65,29 @@ int initialize(void *multiboot_info)
     {
         printf("%i\t\t\t%08x\t\t%u\n", boot_info.map.array[i].type, boot_info.map.array[i].location, boot_info.map.array[i].size);
     }
-    page_stack.base_pointer = 0xFFC00000;
-    page_stack.stack_pointer = 0xFFC00000;
-    page_stack.limit_pointer = 0xFF900000;
+    page_stack.base_pointer = (physaddr_t*)0xFFC00000;
+    page_stack.stack_pointer = (physaddr_t*)0xFFC00000;
+    page_stack.limit_pointer = (physaddr_t*)0xFF900000;
     initialize_page_stack(&page_stack, &boot_info.map, 4096);
     for(int i = 0; i < boot_info.module_count; i++)
     {
         load_module(&kernel, &boot_info.modules[i]);
     }
     // TODO: setup IDT
-    
+    memset(idt, 0, sizeof(struct interrupt_descriptor_t) * 256);
+    create_interrupt_descriptor(&idt[EXCEPTION_DIV_BY_0], (void*)isr_division_by_zero, INTERRPUT_INT32, 3);
+    create_interrupt_descriptor(&idt[EXCEPTION_GPF], (void*)isr_gp_fault, INTERRPUT_INT32, 3);
+    create_interrupt_descriptor(&idt[EXCEPTION_PAGE_FAULT], (void*)isr_page_fault, INTERRPUT_INT32, 3);
+    create_interrupt_descriptor(&idt[EXCEPTION_DOUBLE_FAULT], (void*)isr_double_fault, INTERRPUT_INT32, 3);
+    create_interrupt_descriptor(&idt[0x80], (void*)isr_syscall, INTERRPUT_INT32, 3);
+
+    // TODO: setup APIC
+    asm volatile(
+        "mov $0xFF, %%al;"
+        "outb %%al, $0xA1;"
+        "outb %%al, $0x21;"
+        ::: "al"
+    );
+    apic_enable();
     // TODO: enter first process
 }

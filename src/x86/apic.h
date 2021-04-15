@@ -140,11 +140,13 @@ struct apic_registers_t
     struct apic_register_t reserved_5;
 };
 
-void apic_enable(struct apic_registers_t volatile *apic_registers);
+extern struct apic_registers_t volatile *apic_registers;
 
-void apic_eoi(struct apic_registers_t volatile *apic_registers);
+void apic_enable();
 
-void apic_send_ipi(struct apic_registers_t volatile *apic_registers,
+void apic_eoi();
+
+void apic_send_ipi(
     uint32_t vector,
     enum apic_delivery_mode_t delivery_mode,
     enum apic_destination_mode_t destination_mode,
