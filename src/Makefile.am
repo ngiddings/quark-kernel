@@ -9,6 +9,7 @@ quark_kernel_SOURCES += x86/mmgr.c \
                         x86/putc.c \
                         x86/multiboot2.c \
                         x86/interrupts.c \
+                        x86/apic.c \
                         x86/isr.c \
                         x86/quark_x86.c \
                         x86/entry.S 
