@@ -38,5 +38,5 @@ SECTIONS
 	_heapLocation = 0xFFB00000;
 	_heapSize = 0x100000;
 	_kernelStart = VIRTUAL_BASE;
-	_kernelEnd = VIRTUAL_BASE + (4096 * IMAGE_SIZE);
+	_kernel_end = VIRTUAL_BASE + (4096 * IMAGE_SIZE);
 }

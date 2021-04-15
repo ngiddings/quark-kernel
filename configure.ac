@@ -4,18 +4,17 @@
 AC_PREREQ([2.69])
 AC_INIT([quark-kernel], [pre-alpha])
 AM_INIT_AUTOMAKE([-Wall foreign subdir-objects])
-AC_CONFIG_SRCDIR([src/allocator.cpp])
+AC_CONFIG_SRCDIR([src/kernel.c])
 AC_CONFIG_HEADERS([src/config.h])
 
 # Checks for programs.
-AC_PROG_CXX
 AC_PROG_CC
 AM_PROG_AS 
 AM_PROG_AR
 AC_PROG_RANLIB
 
 # Checks for header files.
-AC_CHECK_HEADERS([stddef.h stdint.h])
+AC_CHECK_HEADERS([stddef.h stdint.h stdarg.h])
 
 # Checks for typedefs, structures, and compiler characteristics.
 AC_CHECK_HEADER_STDBOOL
