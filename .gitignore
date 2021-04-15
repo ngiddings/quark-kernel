@@ -5,6 +5,8 @@ quark-kernel
 
 autom4te.cache/
 .deps
+.dirstamp
+.vscode
 aclocal.m4
 ar-lib
 compile
@@ -24,3 +26,4 @@ stamp-h1
 
 rootfs/apps
 test/
+doc/
