@@ -17,7 +17,7 @@ extern int _kernel_end;
 
 struct apic_registers_t volatile *apic_registers;
 
-int startPaging(uint32_t *directory, uint32_t *table, uint32_t *identityTable)
+int start_paging(uint32_t *directory, uint32_t *table, uint32_t *identityTable)
 {
     for (int i = 0; i < 1024; i++)
     {
@@ -42,8 +42,9 @@ int startPaging(uint32_t *directory, uint32_t *table, uint32_t *identityTable)
 
 int initialize(void *multiboot_info)
 {
+    initialize_gdt();
+    initialize_idt();
     printf("***%s***\n", PACKAGE_STRING);
-    static struct interrupt_descriptor_t idt[256];
     static struct page_stack_t page_stack;
     static struct kernel_t kernel;
     struct memory_region_t map_array[16];
@@ -76,33 +77,18 @@ int initialize(void *multiboot_info)
     {
         load_module(&kernel, &boot_info.modules[i]);
     }
-    memset(idt, 0, sizeof(struct interrupt_descriptor_t) * 256);
-    create_interrupt_descriptor(&idt[EXCEPTION_DIV_BY_0], (void*)isr_division_by_zero, INTERRPUT_INT32, 0);
-    create_interrupt_descriptor(&idt[EXCEPTION_GPF], (void*)isr_gp_fault, INTERRPUT_INT32, 0);
-    create_interrupt_descriptor(&idt[EXCEPTION_PAGE_FAULT], (void*)isr_page_fault, INTERRPUT_INT32, 0);
-    create_interrupt_descriptor(&idt[EXCEPTION_DOUBLE_FAULT], (void*)isr_double_fault, INTERRPUT_INT32, 0);
-    create_interrupt_descriptor(&idt[ISR_APIC_TIMER], (void*)isr_timer, INTERRPUT_INT32, 0);
-    create_interrupt_descriptor(&idt[ISR_AP_START], (void*)isr_ap_start, INTERRPUT_INT32, 0);
-    create_interrupt_descriptor(&idt[ISR_SYSCALL], (void*)isr_syscall, INTERRPUT_INT32, 0);
-    lidt(idt);
-    asm volatile(
-        "mov $0xFF, %%al;"
-        "outb %%al, $0xA1;"
-        "outb %%al, $0x21;"
-        ::: "al"
-    );
     apic_enable(page_stack);
-    printf("spurious_interrupt_vector: %08x\n", *((uint32_t*) &apic_registers->spurious_iv));
-    printf("lvt_timer_vector: %08x\n", *((uint32_t*) &apic_registers->lvt_timer));
-    
     apic_registers->divide_config.value = APIC_DIVIDE_128;
     apic_registers->lvt_timer.vector = ISR_APIC_TIMER;
     apic_registers->lvt_timer.timer_mode = APIC_TIMER_PERIODIC;
-    apic_registers->initial_count.value = 1024*1024*512;
+    apic_registers->initial_count.value = 1024*1024*1024;
     apic_registers->lvt_timer.mask = 0;
     printf("spurious_interrupt_vector: %08x\n", *((uint32_t*) &apic_registers->spurious_iv));
     printf("lvt_timer_vector: %08x\n", *((uint32_t*) &apic_registers->lvt_timer));
     asm("sti");
-    while(1) asm("hlt");
+    while(1)
+    {
+        asm("hlt");
+    }
     // TODO: enter first process
 }

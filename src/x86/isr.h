@@ -1,6 +1,9 @@
 #pragma once
 
 __attribute__ ((interrupt))
+void isr_generic(void* frame);
+
+__attribute__ ((interrupt))
 void isr_division_by_zero(void* frame);
 
 __attribute__ ((interrupt))

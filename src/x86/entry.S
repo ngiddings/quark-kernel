@@ -93,23 +93,6 @@ _multibootInfoTagEnd:
 .long 8
 
 _multibootHeaderEnd:
-
-.section .rodata
-
-gdt:
-.long 0, 0
-.short 0xFFFF
-.short 0x0000
-.short 0x9A00
-.short 0x00CF
-.short 0xFFFF
-.short 0x0000
-.short 0x9200
-.short 0x00CF
-
-gdt_info:
-.short 23
-.long gdt
 	
 .section .bss
 
@@ -170,7 +153,7 @@ _start:
 	push %eax
 
 	# Load physical address of startPaging()
-	mov $startPaging, %eax
+	mov $start_paging, %eax
 	sub $BASE_DIFF, %eax
 
 	# Initialize paging
@@ -180,8 +163,6 @@ _start:
 	lea 1f, %eax
 	jmp *%eax
 1:
-	# Delete PDE corresponding to identity map. We shouldn't need it anymore.
-	movl $0, (_tempIdentityMap)
 
 	# Flush TLB
 	mov %cr3, %eax
@@ -189,19 +170,6 @@ _start:
 
 	# Initialize stack in virtual memory
 	mov $stackTop, %esp
-
-	# Load GPT
-	lgdt gdt_info
-
-	# Load segment registers
-	jmp $8, $.ldcs
-.ldcs:	
-	mov $16, %ax
-	mov %ax, %ds
-	mov %ax, %es
-	mov %ax, %gs
-	mov %ax, %fs
-	mov %ax, %ss
 
 	# Change EBX to point to the virtual address of the multiboot info
 	# If the new pointer is out-of-bounds, error
