@@ -52,7 +52,7 @@ int load_module(struct kernel_t *kernel, struct module_t *module)
         }
         load_offset += page_size;
     }
-    int index = find_resource_slot(kernel);
+    int index = get_free_resource_slot(kernel, kernel->page_stack);
     if(index < 0)
     {
         panic("no space left in resource table for module");
