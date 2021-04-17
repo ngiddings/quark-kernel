@@ -1,5 +1,7 @@
 #include "kernel.h"
 #include "pageallocator.h"
+#include "allocator.h"
+#include "mmgr.h"
 #include "multiboot2.h"
 #include "memorymap.h"
 #include "apic.h"
@@ -11,38 +13,18 @@
 #include <stdint.h>
 #include <stddef.h>
 
+extern int _kernel_pstart;
+extern int _kernel_pend;
+extern int _kernel_start;
 extern int _kernel_end;
 
 struct kernel_t kernel_state;
-
-int start_paging(uint32_t *directory, uint32_t *table, uint32_t *identityTable)
-{
-    for (int i = 0; i < 1024; i++)
-    {
-        uint32_t pte = i * 4096 + 3;
-        table[i] = pte;
-        identityTable[i] = pte;
-    }
-    directory[0] = ((uint32_t)identityTable) + 3;
-    directory[1022] = ((uint32_t)table) + 3;
-    directory[1023] = ((uint32_t)directory) + 3;
-    asm("mov %0, %%cr3"
-        :
-        : "r"(directory));
-    asm("mov %%cr0, %%eax \n"
-        "or $0x80010000, %%eax \n"
-        "mov %%eax, %%cr0"
-        :
-        :
-        : "eax");
-    return 0;
-}
 
 int initialize(void *multiboot_info)
 {
     initialize_gdt();
     initialize_idt();
-    printf("***%s***\n", PACKAGE_STRING);
+    initialize_allocator(&_kernel_end, (void*)0xFFC00000);
     static struct page_stack_t page_stack;
     struct memory_region_t map_array[16];
     char bootloader_name[64];
@@ -55,12 +37,19 @@ int initialize(void *multiboot_info)
             .array = map_array,
             .size = 0,
             .capacity = 16}};
+    void *multiboot_end = multiboot_info + *(uint32_t*)multiboot_info;
     multiboot_info += 8;
     while (multiboot_info != NULL)
     {
         multiboot_info = read_multiboot_table(&boot_info, multiboot_info);
     }
-    insert_region(&boot_info.map, 0, 1 << 22, M_UNAVAILABLE);
+    insert_region(&boot_info.map, (physaddr_t)&_kernel_pstart, (physaddr_t)&_kernel_pend, M_UNAVAILABLE);
+    for(void *p = (void*)&_kernel_end; p < multiboot_end; p += page_size)
+    {
+        unmap_page(p);
+    }
+    initialize_screen();
+    printf("***%s***\n", PACKAGE_STRING);
     printf("Type\t\tLocation\t\tSize\n");
     for (size_t i = 0; i < boot_info.map.size && boot_info.map.array[i].size > 0; i++)
     {
@@ -68,8 +57,8 @@ int initialize(void *multiboot_info)
     }
     page_stack.base_pointer = (physaddr_t*)0xFFC00000;
     page_stack.stack_pointer = (physaddr_t*)0xFFC00000;
-    page_stack.limit_pointer = (physaddr_t*)0xFF900000;
-    initialize_page_stack(&page_stack, &boot_info.map, 4096);
+    page_stack.limit_pointer = (physaddr_t*)0xFFC00000;
+    initialize_page_stack(&page_stack, &boot_info.map);
     apic_enable(page_stack);
     apic_registers->divide_config.value = APIC_DIVIDE_128;
     apic_registers->lvt_timer.vector = ISR_APIC_TIMER;

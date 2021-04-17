@@ -1,4 +1,6 @@
 #include "stdio.h"
+#include "mmgr.h"
+#include "allocator.h"
 #include <stddef.h>
 
 enum vga_color_t {
@@ -28,11 +30,17 @@ struct cell_t
     char bg : 4;
 };
 
-struct cell_t *screen = (struct cell_t*)0xFF8B8000;
+struct cell_t *screen = (struct cell_t*)NULL;
 size_t cursor = 0;
 
 const size_t tab_width = 4;
 const size_t line_width = 80;
+
+int initialize_screen()
+{
+    screen = allocate_from_bottom(page_size);
+    map_page(NULL, screen, 0x000B8000, PAGE_RW);
+}
 
 int putchar(int c)
 {

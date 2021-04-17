@@ -28,6 +28,34 @@ struct page_table_entry_t *page_tables = (struct page_table_entry_t *)0xFFC00000
 
 struct page_table_entry_t *page_directory = (struct page_table_entry_t *)0xFFFFF000;
 
+int start_paging(physaddr_t start, physaddr_t end, uint32_t *directory, uint32_t *table, uint32_t *identity_table)
+{
+    physaddr_t p = start;
+    size_t count = 0;
+    while(p < end)
+    {
+        uint32_t table_entry = p + 3;
+        int index = p / page_size;
+        table[index - start / page_size] = table_entry;
+        identity_table[index] = table_entry;
+        p += page_size;
+        count++;
+    }
+    directory[0] = ((uint32_t)identity_table) + 3;
+    directory[1022] = ((uint32_t)table) + 3;
+    directory[1023] = ((uint32_t)directory) + 3;
+    asm("mov %0, %%cr3"
+        :
+        : "r"(directory));
+    asm("mov %%cr0, %%eax \n"
+        "or $0x80010000, %%eax \n"
+        "mov %%eax, %%cr0"
+        :
+        :
+        : "eax");
+    return count;
+}
+
 physaddr_t create_address_space(struct page_stack_t *page_stack)
 {
     physaddr_t table = reserve_page(page_stack);

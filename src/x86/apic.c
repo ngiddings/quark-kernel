@@ -1,4 +1,5 @@
 #include "mmgr.h"
+#include "allocator.h"
 #include "apic.h"
 #include "msr.h"
 #include "stdio.h"
@@ -33,9 +34,9 @@ void apic_enable(struct page_stact_t *page_stack)
     );
     struct msr_apic_base_t msr;
     read_msr(MSR_APIC_BASE, (uint64_t*)&msr);
-    map_page(page_stack, &_kernel_end, msr.apic_base << 12, PAGE_RW);
+    apic_registers = (struct apic_registers_t*)allocate_from_bottom(page_size);
+    map_page(page_stack, apic_registers, msr.apic_base << 12, PAGE_RW);
     printf("MSR_APIC_BASE: %016x\n", *((uint32_t*)&msr));
-    apic_registers = (struct apic_registers_t*)&_kernel_end;
     apic_registers->spurious_iv.value = apic_registers->spurious_iv.value | 0x100;
 }
 

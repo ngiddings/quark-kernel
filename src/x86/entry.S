@@ -30,7 +30,7 @@
 
 .set tagEntryType, 3
 .set tagEntrySize, 12
-.set tagEntryAddress, _start - (0xFF900000 - 0x100000)
+.set tagEntryAddress, _start - (0xFF800000 - 0x100000)
 
 .set tagModuleAlignType, 6
 .set tagModuleAlignSize, 8
@@ -108,19 +108,6 @@ _tempIdentityMap:
 .skip 4096
 _tempPgTable:
 .skip 4096
-
-_bootCmdLine:
-.skip 64
-
-.align 64
-.global system_info
-system_info:
-.skip 16
-
-.align 64
-.global memory_map
-memory_map:
-.skip 16 * 16
 	
 .section .text
 .global _start
@@ -152,13 +139,22 @@ _start:
 	sub $BASE_DIFF, %eax
 	push %eax
 
+	# Push ending physical address to map
+	mov (%ebx), %eax
+	add %ebx, %eax
+	push %eax
+
+	# Push starting physical address to map
+	mov $PHYSICAL_BASE, %eax
+	push %eax
+
 	# Load physical address of startPaging()
 	mov $start_paging, %eax
 	sub $BASE_DIFF, %eax
 
 	# Initialize paging
 	call *%eax
-
+	
 	# Jump into mapped kernel binary
 	lea 1f, %eax
 	jmp *%eax
@@ -173,7 +169,7 @@ _start:
 
 	# Change EBX to point to the virtual address of the multiboot info
 	# If the new pointer is out-of-bounds, error
-	add $0xFF800000, %ebx
+	add $0xFF700000, %ebx
 	cmp $0xFF800000, %ebx
 	jl .err
 	cmp $0xFFC00000, %ebx
