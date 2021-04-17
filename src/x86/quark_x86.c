@@ -2,6 +2,7 @@
 #include "pageallocator.h"
 #include "allocator.h"
 #include "mmgr.h"
+#include "priorityqueue.h"
 #include "multiboot2.h"
 #include "memorymap.h"
 #include "apic.h"
@@ -66,11 +67,20 @@ int initialize(void *multiboot_info)
     apic_registers->initial_count.value = 1024*1024*1024;
     apic_registers->lvt_timer.mask = 0;
 
+    
+    static struct priority_queue_t priority_queue;
+    construct_priority_queue(&priority_queue, &page_stack);
+    static struct resource_table_t resource_table;
+    construct_resource_table(&resource_table, &page_stack);
     kernel_state.page_stack = &page_stack;
+    kernel_state.resource_table = &resource_table;
+    kernel_state.priority_queue = &priority_queue;
+    kernel_state.active_process = NULL;
     for(int i = 0; i < boot_info.module_count; i++)
     {
         load_module(&kernel_state, &boot_info.modules[i]);
     }
+    next_process(&kernel_state, NULL);
 
     asm("sti");
     while(1)
