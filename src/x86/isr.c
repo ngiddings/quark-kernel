@@ -1,20 +1,18 @@
+#include "kernel.h"
 #include "isr.h"
 #include "stdio.h"
 #include "apic.h"
 
-__attribute__ ((interrupt))
 void isr_generic(void* frame)
 {
     printf("Generic interrupt.\n");
 }
 
-__attribute__ ((interrupt))
 void isr_division_by_zero(void* frame)
 {
     printf("Exception: Division by zero\n");
 }
 
-__attribute__ ((interrupt))
 void isr_gp_fault(void* frame, unsigned int error)
 {
     asm("cli");
@@ -22,28 +20,39 @@ void isr_gp_fault(void* frame, unsigned int error)
     asm("hlt");
 }
 
-__attribute__ ((interrupt))
 void isr_page_fault(void* frame, unsigned int error)
 {
-    printf("Exception: Page fault\n");
+    size_t addr;
+    asm("mov %%cr2, %0"
+        : "=r"(addr));
+    printf("Exception: Page fault, code %08x, linear address %08x\n", error, addr);
+    asm("hlt");
 }
 
-__attribute__ ((interrupt))
 void isr_double_fault(void* frame, unsigned int error)
 {
     asm("cli");
+    
     printf("Exception: Double fault (!!), code %08x\n", error);
     asm("hlt");
 }
 
-__attribute__ ((interrupt))
 void isr_timer(void* frame)
 {
     printf("Timer tick.\n");
     apic_eoi();
 }
 
-__attribute__ ((naked))
+void isr_preempt(void* frame)
+{
+    asm("pushal;"
+        "mov %esp, %ebp");
+    struct process_state_t *process_state;
+    asm("mov %%ebp, %0"
+        : "=r"(process_state));
+    next_process(&kernel_state, process_state);
+}
+
 void isr_ap_start(void* frame)
 {
     asm(".code16");
@@ -52,7 +61,6 @@ void isr_ap_start(void* frame)
     // do something useful
 }
 
-__attribute__ ((interrupt))
 void isr_syscall(void* frame)
 {
     

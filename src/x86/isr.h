@@ -19,6 +19,9 @@ __attribute__ ((interrupt))
 void isr_timer(void* frame);
 
 __attribute__ ((naked))
+void isr_preempt(void* frame);
+
+__attribute__ ((naked))
 void isr_ap_start(void* frame);
 
 __attribute__ ((interrupt))
