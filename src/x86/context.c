@@ -4,13 +4,12 @@
 
 void *initialize_context(void *task_entry, struct page_stack_t *page_stack)
 {
-    physaddr_t stack0 = reserve_page(page_stack);
-    map_page(page_stack, (void*)0xFF7FF000, stack0, PAGE_RW);
-    map_page(page_stack, (void*)0xFF7FD000, stack0, PAGE_RW | PAGE_USERMODE);
+    map_page(page_stack, (void*)0xFF7FF000, reserve_page(page_stack), PAGE_RW);
+    map_page(page_stack, (void*)0xFF7FD000, reserve_page(page_stack), PAGE_RW | PAGE_USERMODE);
     unmap_page((void*)0xFF7FE000);
     unmap_page((void*)0xFF7FC000);
     uint32_t flags;
-    uint32_t *stack = (uint32_t*)((void*)stack0 - 20);
+    uint32_t *stack = (uint32_t*)((void*)0xFF800000 - 20);
     asm("pushf; "
         "mov (%%esp), %0; "
         "popf; "
