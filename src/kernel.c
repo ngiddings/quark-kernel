@@ -73,8 +73,12 @@ struct process_state_t *next_process(struct kernel_t *kernel, struct process_sta
         queue_insert(kernel->priority_queue, kernel->active_process);
     }
     kernel->active_process = extract_min(kernel->priority_queue);
-    load_address_space(kernel->active_process->page_table);
-    load_context(kernel->active_process->state);
+    if(kernel->active_process != NULL)
+    {
+        load_address_space(kernel->active_process->page_table);
+        load_context(kernel->active_process->state);
+    }
+    panic("no processes available to enter!");
 }
 
 void panic(const char *message)
