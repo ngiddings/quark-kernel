@@ -1,49 +1,31 @@
 #include "kernel.h"
 #include "pageallocator.h"
+#include "allocator.h"
+#include "mmgr.h"
 #include "multiboot2.h"
 #include "memorymap.h"
 #include "apic.h"
 #include "interrupts.h"
-#include "msr.h"
 #include "stdio.h"
 #include "string.h"
 #include "module.h"
-#include "isr.h"
+#include "config.h"
 #include <stdint.h>
 #include <stddef.h>
 
+extern int _kernel_pstart;
+extern int _kernel_pend;
+extern int _kernel_start;
 extern int _kernel_end;
 
-struct apic_registers_t volatile *apic_registers;
-
-int startPaging(uint32_t *directory, uint32_t *table, uint32_t *identityTable)
-{
-    for (int i = 0; i < 1024; i++)
-    {
-        uint32_t pte = i * 4096 + 3;
-        table[i] = pte;
-        identityTable[i] = pte;
-    }
-    directory[0] = ((uint32_t)identityTable) + 3;
-    directory[1022] = ((uint32_t)table) + 3;
-    directory[1023] = ((uint32_t)directory) + 3;
-    asm("mov %0, %%cr3"
-        :
-        : "r"(directory));
-    asm("mov %%cr0, %%eax \n"
-        "or $0x80010000, %%eax \n"
-        "mov %%eax, %%cr0"
-        :
-        :
-        : "eax");
-    return 0;
-}
+struct kernel_t kernel_state;
 
 int initialize(void *multiboot_info)
 {
-    static struct interrupt_descriptor_t idt[256];
+    initialize_gdt();
+    initialize_idt();
+    initialize_allocator(&_kernel_end, (void*)0xFFC00000);
     static struct page_stack_t page_stack;
-    static struct kernel_t kernel;
     struct memory_region_t map_array[16];
     char bootloader_name[64];
     char kernel_parameters[64];
@@ -55,12 +37,19 @@ int initialize(void *multiboot_info)
             .array = map_array,
             .size = 0,
             .capacity = 16}};
+    void *multiboot_end = multiboot_info + *(uint32_t*)multiboot_info;
     multiboot_info += 8;
     while (multiboot_info != NULL)
     {
         multiboot_info = read_multiboot_table(&boot_info, multiboot_info);
     }
-    insert_region(&boot_info.map, 0, 1 << 22, M_UNAVAILABLE);
+    insert_region(&boot_info.map, (physaddr_t)&_kernel_pstart, (physaddr_t)&_kernel_pend, M_UNAVAILABLE);
+    for(void *p = (void*)&_kernel_end; p < multiboot_end; p += page_size)
+    {
+        unmap_page(p);
+    }
+    initialize_screen();
+    printf("***%s***\n", PACKAGE_STRING);
     printf("Type\t\tLocation\t\tSize\n");
     for (size_t i = 0; i < boot_info.map.size && boot_info.map.array[i].size > 0; i++)
     {
@@ -68,35 +57,25 @@ int initialize(void *multiboot_info)
     }
     page_stack.base_pointer = (physaddr_t*)0xFFC00000;
     page_stack.stack_pointer = (physaddr_t*)0xFFC00000;
-    page_stack.limit_pointer = (physaddr_t*)0xFF900000;
-    initialize_page_stack(&page_stack, &boot_info.map, 4096);
+    page_stack.limit_pointer = (physaddr_t*)0xFFC00000;
+    initialize_page_stack(&page_stack, &boot_info.map);
+    apic_enable(page_stack);
+    apic_registers->divide_config.value = APIC_DIVIDE_128;
+    apic_registers->lvt_timer.vector = ISR_APIC_TIMER;
+    apic_registers->lvt_timer.timer_mode = APIC_TIMER_PERIODIC;
+    apic_registers->initial_count.value = 1024*1024*1024;
+    apic_registers->lvt_timer.mask = 0;
+
+    kernel_state.page_stack = &page_stack;
     for(int i = 0; i < boot_info.module_count; i++)
     {
-        load_module(&kernel, &boot_info.modules[i]);
+        load_module(&kernel_state, &boot_info.modules[i]);
     }
-    // TODO: setup IDT
-    memset(idt, 0, sizeof(struct interrupt_descriptor_t) * 256);
-    create_interrupt_descriptor(&idt[EXCEPTION_DIV_BY_0], (void*)isr_division_by_zero, INTERRPUT_INT32, 0);
-    create_interrupt_descriptor(&idt[EXCEPTION_GPF], (void*)isr_gp_fault, INTERRPUT_INT32, 0);
-    create_interrupt_descriptor(&idt[EXCEPTION_PAGE_FAULT], (void*)isr_page_fault, INTERRPUT_INT32, 0);
-    create_interrupt_descriptor(&idt[EXCEPTION_DOUBLE_FAULT], (void*)isr_double_fault, INTERRPUT_INT32, 0);
-    create_interrupt_descriptor(&idt[ISR_AP_START], (void*)isr_ap_start, INTERRPUT_INT32, 0);
-    create_interrupt_descriptor(&idt[ISR_SYSCALL], (void*)isr_syscall, INTERRPUT_INT32, 0);
-    lidt(idt);
 
-    // TODO: setup APIC
-    asm volatile(
-        "mov $0xFF, %%al;"
-        "outb %%al, $0xA1;"
-        "outb %%al, $0x21;"
-        ::: "al"
-    );
-    apic_enable();
-    struct msr_apic_base_t msr;
-    read_msr(MSR_APIC_BASE, (uint64_t*)&msr);
-    msr.apic_base = (size_t) &_kernel_end >> 12;
-    write_msr(MSR_APIC_BASE, (uint64_t*)&msr);
-    printf("MSR_APIC_BASE: %016x\n", *((uint32_t*)&msr));
-    apic_registers = (struct apic_registers_t*) (msr.apic_base << 12);
-    // TODO: enter first process
+    asm("sti");
+    while(1)
+    {
+        asm("hlt");
+    }
+    // next_process(&kernel_state, NULL);
 }

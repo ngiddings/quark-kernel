@@ -24,6 +24,7 @@ enum interrupt_code_t
     EXCEPTION_SIMD_FLOATING_POINT = 19,
     EXCEPTION_VIRTUALIZATION = 20,
     EXCEPTION_SECURITY = 30,
+    ISR_APIC_TIMER = 64,
     ISR_AP_START = 127,
     ISR_SYSCALL = 128
 };
@@ -37,18 +38,6 @@ enum isr_type_t
     INTERRPUT_INT16 = 6
 };
 
-struct interrupt_descriptor_t
-{
-    uint16_t offset_1;
-    uint16_t selector;
-    uint16_t zero : 8;
-    uint16_t type : 4;
-    uint16_t storage : 1;
-    uint16_t dpl : 2;
-    uint16_t present : 1;
-    uint16_t offset_2;
-};
+void initialize_gdt();
 
-void lidt(struct interrupt_descriptor_t *idt);
-
-void create_interrupt_descriptor(struct interrupt_descriptor_t *descriptor, void *isr, enum isr_type_t type, uint32_t privilage);
+void initialize_idt();

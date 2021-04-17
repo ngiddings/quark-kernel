@@ -36,10 +36,6 @@ void *read_multiboot_table(struct boot_info_t *boot_info, void *table)
                 M_UNAVAILABLE);
             boot_info->module_count++;
         }
-        else
-        {
-            printf("WARNING: Too many modules, must skip one.\n");
-        }
         break;
     case MB_BOOT_COMMAND:
         strcpy(boot_info->parameters, &((struct multiboot2_string_t*) table)->str);

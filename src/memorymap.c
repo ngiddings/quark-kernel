@@ -66,36 +66,36 @@ int trim_map(struct memory_map_t *map, int index)
     {
         return -1;
     }
-    struct memory_region_t left = map->array[index];
-    struct memory_region_t right = map->array[index + 1];
-    if(region_overlaps(&left, &right))
+    struct memory_region_t *left = &map->array[index];
+    struct memory_region_t *right = &map->array[index + 1];
+    if(region_overlaps(left, right))
     {
-        if(left.type == right.type)
+        if(left->type == right->type)
         {
-            left.size = (right.location + right.size > left.location + left.size ? right.location + right.size : left.location + left.size) - left.location;
+            left->size = (right->location + right->size > left->location + left->size ? right->location + right->size : left->location + left->size) - left->location;
             remove_map_entry(map, index + 1);
             return index;
         }
-        else if(left.type < right.type)
+        else if(left->type < right->type)
         {
-            if(region_contains(&right, &left))
+            if(region_contains(right, left))
             {
                 remove_map_entry(map, index);
                 return index;
             }
-            else if(left.location + left.size <= right.location + right.size)
+            else if(left->location + left->size <= right->location + right->size)
             {
-                left.size = (right.location > left.location) ? right.location - left.location : 0;
+                left->size = (right->location > left->location) ? right->location - left->location : 0;
                 return index + 1;
             }
             else
             {
                 struct memory_region_t new_right = {
-                    .location = right.location + right.size, 
-                    .size = (left.location + left.size) - (right.location + right.size), 
-                    .type = left.type};
-                left.size = (right.location > left.location) ? right.location - left.location : 0;
-                if(left.size == 0)
+                    .location = right->location + right->size, 
+                    .size = (left->location + left->size) - (right->location + right->size), 
+                    .type = left->type};
+                left->size = (right->location > left->location) ? right->location - left->location : 0;
+                if(left->size == 0)
                     remove_map_entry(map, index);
                 insert_map_entry(map, new_right.location, new_right.size, new_right.type);
                 return index + 2;
@@ -103,22 +103,22 @@ int trim_map(struct memory_map_t *map, int index)
         }
         else
         {
-            if(region_contains(&left, &right))
+            if(region_contains(left, right))
             {
                 remove_map_entry(map, index + 1);
                 return index;
             }
             else
             {
-                right.size = (right.location + right.size) - (left.location + left.size);
-                right.location = left.location + left.size;
+                right->size = (right->location + right->size) - (left->location + left->size);
+                right->location = left->location + left->size;
                 return index + 1;
             }
         }
     }
-    else if((left.location + left.size == right.location) && left.type == right.type)
+    else if((left->location + left->size == right->location) && left->type == right->type)
     {
-        left.size = right.location + right.size - left.location;
+        left->size = right->location + right->size - left->location;
         remove_map_entry(map, index + 1);
         return index;
     }

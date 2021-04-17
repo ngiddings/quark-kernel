@@ -2,7 +2,7 @@ ENTRY(_start)
 
 SECTIONS
 {
-	. = 0xFF900000;
+	. = 0xFF800000;
 	VIRTUAL_BASE = .;
 	PHYSICAL_BASE = 0x100000;
 	BASE_DIFF = VIRTUAL_BASE - PHYSICAL_BASE;
@@ -34,9 +34,8 @@ SECTIONS
 	BSS_END = ADDR(.bss) + SIZEOF(.bss) - (VIRTUAL_BASE - PHYSICAL_BASE);
 	IMAGE_SIZE = ((BSS_END - LOAD_START) + (4096 - ((BSS_END - LOAD_START) % 4096))) / 4096;
 
-	_pageMapLocation = 0xFF800000;
-	_heapLocation = 0xFFB00000;
-	_heapSize = 0x100000;
-	_kernelStart = VIRTUAL_BASE;
+	_kernel_pstart = PHYSICAL_BASE;
+	_kernel_pend = PHYSICAL_BASE + (4096 * IMAGE_SIZE);
+	_kernel_start = VIRTUAL_BASE;
 	_kernel_end = VIRTUAL_BASE + (4096 * IMAGE_SIZE);
 }

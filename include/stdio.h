@@ -2,6 +2,8 @@
 
 #include <stdarg.h>
 
+int initialize_screen();
+
 int putchar(int c);
 
 int puts(const char *str);

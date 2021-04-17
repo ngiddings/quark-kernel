@@ -1,9 +1,8 @@
 #pragma once
 
+#include "pageallocator.h"
 #include "types/physaddr.h"
 #include <stdint.h>
-
-const uint32_t elf_magic_number = 0x464c457f;
 
 enum elf_endianness_t
 {
@@ -107,11 +106,13 @@ struct elf_section_header_t
 };
 
 #if defined __i386__
-    static const elf_isa_t HOST_ISA = ELF_ISA_x86;
+    static const enum elf_isa_t HOST_ISA = ELF_ISA_x86;
 #elif defined __x86_64__
-    static const elf_isa_t HOST_ISA = ELF_ISA_x86_64;
+    static const enum elf_isa_t HOST_ISA = ELF_ISA_x86_64;
 #elif defined __arm__
-    static const elf_isa_t HOST_ISA = ELF_ISA_ARM;
+    static const enum elf_isa_t HOST_ISA = ELF_ISA_ARM;
 #elif defined __aarch64__
-    static const elf_isa_t HOST_ISA = ELF_ISA_AARCH64;
+    static const enum elf_isa_t HOST_ISA = ELF_ISA_AARCH64;
 #endif
+
+int load_program(struct elf_file_header_t *elf, struct page_stack_t *page_stack);
