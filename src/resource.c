@@ -3,6 +3,26 @@
 #include "allocator.h"
 #include "types/status.h"
 
+int construct_resource_table(struct resource_table_t *table, struct page_stack_t *page_stack)
+{
+    if(table == NULL)
+    {
+        return S_NULL_POINTER;
+    }
+    void *table_ptr = allocate_from_bottom(page_size);
+    if(table_ptr == NULL)
+    {
+        return S_OUT_OF_MEMORY;
+    }
+    int status = map_page(page_stack, table_ptr, reserve_page(page_stack), PAGE_RW);
+    if(status == S_OK)
+    {
+        table->array = (struct resource_t*)table_ptr;
+        table->limit = (struct resource_t*)(table_ptr + page_size);
+    }
+    return status;
+}
+
 int get_free_resource_slot(struct resource_table_t *table, struct page_stack_t *page_stack)
 {
     if(table == NULL)

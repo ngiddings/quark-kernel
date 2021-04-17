@@ -25,4 +25,6 @@ struct resource_table_t
     struct resource_t *limit;
 };
 
+int construct_resource_table(struct resource_table_t *table, struct page_stack_t *page_stack);
+
 int get_free_resource_slot(struct resource_table_t *table, struct page_stack_t *page_stack);

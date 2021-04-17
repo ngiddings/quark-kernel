@@ -1,4 +1,6 @@
 #include "priorityqueue.h"
+#include "allocator.h"
+#include "mmgr.h"
 #include "types/status.h"
 
 void heapify(struct priority_queue_t *queue, size_t i)
@@ -23,6 +25,22 @@ void heapify(struct priority_queue_t *queue, size_t i)
         queue->heap[i * 2 + 2] = buffer;
         heapify(queue, i * 2 + 2);
     }
+}
+
+int construct_priority_queue(struct priority_queue_t *queue, struct page_stack_t *page_stack)
+{
+    queue->heap = allocate_from_bottom(page_size);
+    if(queue->heap == NULL)
+    {
+        return S_OUT_OF_MEMORY;
+    }
+    int status = map_page(page_stack, queue->heap, reserve_page(page_stack), PAGE_RW);
+    if(status == S_OK)
+    {
+        queue->capacity = page_size / sizeof(struct process_t*);
+        queue->size = 0;
+    }
+    return status;
 }
 
 struct process_t *extract_min(struct priority_queue_t *queue)
