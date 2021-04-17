@@ -36,7 +36,7 @@ struct process_t *extract_min(struct priority_queue_t *queue)
     return p;
 }
 
-int insert(struct priority_queue_t *queue, struct process_t *process)
+int queue_insert(struct priority_queue_t *queue, struct process_t *process)
 {
     if(queue->size == queue->capacity)
         return S_OUT_OF_MEMORY;
@@ -51,7 +51,7 @@ int insert(struct priority_queue_t *queue, struct process_t *process)
     return S_OK;
 }
 
-int remove(struct priority_queue_t *queue, struct process_t *process)
+int queue_remove(struct priority_queue_t *queue, struct process_t *process)
 {
     for(size_t i = 0; i < queue->size; i++)
     {

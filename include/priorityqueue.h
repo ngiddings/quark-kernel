@@ -43,7 +43,7 @@ struct process_t *extract_min(struct priority_queue_t *queue);
  * @param process 
  * @return int 
  */
-int insert(struct priority_queue_t *queue, struct process_t *process);
+int queue_insert(struct priority_queue_t *queue, struct process_t *process);
 
 /**
  * @brief 
@@ -52,4 +52,4 @@ int insert(struct priority_queue_t *queue, struct process_t *process);
  * @param process 
  * @return int 
  */
-int remove(struct priority_queue_t *queue, struct process_t *process);
+int queue_remove(struct priority_queue_t *queue, struct process_t *process);

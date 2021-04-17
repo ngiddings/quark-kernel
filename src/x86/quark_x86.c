@@ -4,18 +4,16 @@
 #include "memorymap.h"
 #include "apic.h"
 #include "interrupts.h"
-#include "msr.h"
 #include "stdio.h"
 #include "string.h"
 #include "module.h"
-#include "isr.h"
 #include "config.h"
 #include <stdint.h>
 #include <stddef.h>
 
 extern int _kernel_end;
 
-struct apic_registers_t volatile *apic_registers;
+struct kernel_t kernel_state;
 
 int start_paging(uint32_t *directory, uint32_t *table, uint32_t *identityTable)
 {
@@ -46,7 +44,6 @@ int initialize(void *multiboot_info)
     initialize_idt();
     printf("***%s***\n", PACKAGE_STRING);
     static struct page_stack_t page_stack;
-    static struct kernel_t kernel;
     struct memory_region_t map_array[16];
     char bootloader_name[64];
     char kernel_parameters[64];
@@ -73,22 +70,23 @@ int initialize(void *multiboot_info)
     page_stack.stack_pointer = (physaddr_t*)0xFFC00000;
     page_stack.limit_pointer = (physaddr_t*)0xFF900000;
     initialize_page_stack(&page_stack, &boot_info.map, 4096);
-    for(int i = 0; i < boot_info.module_count; i++)
-    {
-        load_module(&kernel, &boot_info.modules[i]);
-    }
     apic_enable(page_stack);
     apic_registers->divide_config.value = APIC_DIVIDE_128;
     apic_registers->lvt_timer.vector = ISR_APIC_TIMER;
     apic_registers->lvt_timer.timer_mode = APIC_TIMER_PERIODIC;
     apic_registers->initial_count.value = 1024*1024*1024;
     apic_registers->lvt_timer.mask = 0;
-    printf("spurious_interrupt_vector: %08x\n", *((uint32_t*) &apic_registers->spurious_iv));
-    printf("lvt_timer_vector: %08x\n", *((uint32_t*) &apic_registers->lvt_timer));
+
+    kernel_state.page_stack = &page_stack;
+    for(int i = 0; i < boot_info.module_count; i++)
+    {
+        load_module(&kernel_state, &boot_info.modules[i]);
+    }
+
     asm("sti");
     while(1)
     {
         asm("hlt");
     }
-    // TODO: enter first process
+    // next_process(&kernel_state, NULL);
 }
