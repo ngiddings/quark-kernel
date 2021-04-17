@@ -52,7 +52,7 @@ int load_module(struct kernel_t *kernel, struct module_t *module)
         }
         load_offset += page_size;
     }
-    int index = get_free_resource_slot(kernel, kernel->page_stack);
+    int index = get_free_resource_slot(kernel->resource_table, kernel->page_stack);
     if(index < 0)
     {
         panic("no space left in resource table for module");
@@ -73,6 +73,7 @@ struct process_state_t *next_process(struct kernel_t *kernel, struct process_sta
         queue_insert(kernel->priority_queue, kernel->active_process);
     }
     kernel->active_process = extract_min(kernel->priority_queue);
+    load_address_space(kernel->active_process->page_table);
     load_context(kernel->active_process->state);
 }
 
