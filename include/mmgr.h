@@ -3,6 +3,15 @@
 #include "pageallocator.h"
 #include "types/physaddr.h"
 
+enum page_flag_t
+{
+    PAGE_RW = 1,
+    PAGE_EXECUTABLE = 1 << 1,
+    PAGE_USERMODE = 1 << 2
+};
+
+extern const size_t page_size;
+
 /**
  * @brief Create a new top-level page table and map the kernel in it.
  * 
@@ -18,6 +27,15 @@ physaddr_t create_address_space(struct page_stack_t *page_stack);
  * @param table 
  */
 void load_address_space(physaddr_t table);
+
+/**
+ * @brief Returns the physical address of the top-level page table currently in
+ * use.
+ * 
+ * @param table 
+ * @return physaddr_t 
+ */
+physaddr_t current_address_space();
 
 /**
  * @brief Maps a single page with the specified flags.
