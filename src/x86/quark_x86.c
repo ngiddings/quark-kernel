@@ -26,7 +26,7 @@ int initialize(void *multiboot_info)
     initialize_idt();
     initialize_allocator(&_kernel_end, (void*)0xFFC00000);
     static struct page_stack_t page_stack;
-    struct memory_region_t map_array[16];
+    struct memory_region_t map_array[24];
     char bootloader_name[64];
     char kernel_parameters[64];
     struct boot_info_t boot_info = {
@@ -36,14 +36,14 @@ int initialize(void *multiboot_info)
         .map = {
             .array = map_array,
             .size = 0,
-            .capacity = 16}};
+            .capacity = 24}};
     void *multiboot_end = multiboot_info + *(uint32_t*)multiboot_info;
     multiboot_info += 8;
     while (multiboot_info != NULL)
     {
         multiboot_info = read_multiboot_table(&boot_info, multiboot_info);
     }
-    insert_region(&boot_info.map, (physaddr_t)&_kernel_pstart, (physaddr_t)&_kernel_pend, M_UNAVAILABLE);
+    insert_region(&boot_info.map, (physaddr_t)&_kernel_pstart, (physaddr_t)&_kernel_pend - (physaddr_t)&_kernel_pstart, M_UNAVAILABLE);
     for(void *p = (void*)&_kernel_end; p < multiboot_end; p += page_size)
     {
         unmap_page(p);
