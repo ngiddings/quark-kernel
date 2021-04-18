@@ -60,14 +60,6 @@ int initialize(void *multiboot_info)
     page_stack.stack_pointer = (physaddr_t*)0xFFC00000;
     page_stack.limit_pointer = (physaddr_t*)0xFFC00000;
     initialize_page_stack(&page_stack, &boot_info.map);
-    apic_enable(page_stack);
-    apic_registers->divide_config.value = APIC_DIVIDE_128;
-    apic_registers->lvt_timer.vector = ISR_APIC_TIMER;
-    apic_registers->lvt_timer.timer_mode = APIC_TIMER_PERIODIC;
-    apic_registers->initial_count.value = 1024*1024*1024;
-    apic_registers->lvt_timer.mask = 0;
-
-    
     static struct priority_queue_t priority_queue;
     construct_priority_queue(&priority_queue, &page_stack);
     static struct resource_table_t resource_table;
@@ -80,12 +72,14 @@ int initialize(void *multiboot_info)
     {
         load_module(&kernel_state, &boot_info.modules[i]);
     }
-    next_process(&kernel_state, NULL);
-
+    apic_enable(page_stack);
+    apic_registers->divide_config.value = APIC_DIVIDE_16;
+    apic_registers->lvt_timer.vector = ISR_PREEMPT;
+    apic_registers->lvt_timer.timer_mode = APIC_TIMER_PERIODIC;
+    apic_registers->lvt_timer.mask = 0;
+    apic_registers->initial_count.value = 1024*1024*128;
     asm("sti");
-    while(1)
-    {
-        asm("hlt");
-    }
-    // next_process(&kernel_state, NULL);
+    next_process(&kernel_state, NULL);
+    while(1) asm("hlt");
+    
 }
