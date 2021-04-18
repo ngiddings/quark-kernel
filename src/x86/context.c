@@ -35,7 +35,7 @@ void *initialize_context(void *task_entry, struct page_stack_t *page_stack)
     memset(stack, 0, sizeof(*stack));
     stack->eip = (uint32_t)task_entry;
     stack->cs = 27;
-    stack->flags = flags;
+    stack->flags = flags | 0x200;
     stack->esp = 0xFF7FE000;
     stack->ss = 35;
     stack->esp_temp = &stack->eax;
@@ -44,8 +44,13 @@ void *initialize_context(void *task_entry, struct page_stack_t *page_stack)
 
 void load_context(struct process_state_t *context)
 {
-    asm("mov %0, %%esp; "
+    asm("mov $0x10, %%ax; "
+        "mov %%ax, %%ds; "
+        "mov %%ax, %%es; "
+        "mov %%ax, %%fs; "
+        "mov %%ax, %%gs; "
+        ::: "ax");
+    asm("mov 4(%esp), %esp; "
         "popal; "
-        "iret; "
-        :: "r"(context));
+        "iret; ");
 }
