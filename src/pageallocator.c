@@ -45,8 +45,11 @@ size_t free_page_count(struct page_stack_t *stack)
     return stack->base_pointer - stack->stack_pointer;
 }
 
-int initialize_page_stack(struct page_stack_t *stack, struct memory_map_t *map)
+int initialize_page_stack(struct page_stack_t *stack, struct memory_map_t *map, physaddr_t *stack_base)
 {
+    stack->base_pointer = stack_base;
+    stack->limit_pointer = stack_base;
+    stack->stack_pointer = stack_base;
     stack->total_pages = 0;
     for(int i = 0; i < map->size; i++)
     {

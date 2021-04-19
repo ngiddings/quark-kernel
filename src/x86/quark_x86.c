@@ -11,6 +11,7 @@
 #include "string.h"
 #include "module.h"
 #include "system.h"
+#include "syscalls.h"
 #include "config.h"
 #include <stdint.h>
 #include <stddef.h>
@@ -52,22 +53,16 @@ int initialize(void *multiboot_info)
     {
         printf("%i\t\t\t%08x\t\t%u\n", boot_info.map.array[i].type, boot_info.map.array[i].location, boot_info.map.array[i].size);
     }*/
-    page_stack.base_pointer = (physaddr_t*)0xFFC00000;
-    page_stack.stack_pointer = (physaddr_t*)0xFFC00000;
-    page_stack.limit_pointer = (physaddr_t*)0xFFC00000;
-    initialize_page_stack(&page_stack, &boot_info.map);
+    initialize_page_stack(&page_stack, &boot_info.map, (physaddr_t*)0xFFC00000);
     static struct priority_queue_t priority_queue;
     construct_priority_queue(&priority_queue, &page_stack);
     static struct resource_table_t resource_table;
     construct_resource_table(&resource_table, &page_stack);
-    kernel_state.page_stack = &page_stack;
-    kernel_state.resource_table = &resource_table;
-    kernel_state.priority_queue = &priority_queue;
-    kernel_state.active_process = NULL;
-    for(int i = 0; i < boot_info.module_count; i++)
-    {
-        load_module(&kernel_state, &boot_info.modules[i]);
-    }
+    construct_kernel_state(&kernel_state, &page_stack, &priority_queue, &resource_table, boot_info.module_count, boot_info.modules);
+    memset(syscall_table, 0, sizeof(syscall_t)*32);
+    syscall_table[SYSCALL_TEST] = test_syscall;
+    syscall_table[SYSCALL_MMAP] = mmap;
+    syscall_table[SYSCALL_MUNMAP] = munmap;
     apic_enable(page_stack);
     /*apic_registers->divide_config.value = APIC_DIVIDE_1;
     apic_registers->lvt_timer.timer_mode = APIC_TIMER_PERIODIC;

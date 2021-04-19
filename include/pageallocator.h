@@ -72,4 +72,4 @@ size_t free_page_count(struct page_stack_t *stack);
  * @param stack 
  * @param map 
  */
-int initialize_page_stack(struct page_stack_t *stack, struct memory_map_t *map);
+int initialize_page_stack(struct page_stack_t *stack, struct memory_map_t *map, physaddr_t *stack_base);
