@@ -10,6 +10,13 @@ enum page_flag_t
     PAGE_USERMODE = 1 << 2
 };
 
+enum page_type_t
+{
+    PAGE_NOT_PRESENT = 0,
+    PAGE_ANON = 1,
+    PAGE_COPY_ON_WRITE = 2
+};
+
 extern const size_t page_size;
 
 /**
@@ -55,3 +62,11 @@ int map_page(struct page_stack_t *page_stack, void *page, physaddr_t frame, int 
  * @return physaddr_t 
  */
 physaddr_t unmap_page(void *page);
+
+/**
+ * @brief 
+ * 
+ * @param page 
+ * @return enum page_type_t 
+ */
+enum page_type_t page_type(void *page);

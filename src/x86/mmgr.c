@@ -20,7 +20,7 @@ struct page_table_entry_t
     uint32_t pat : 1;
     uint32_t global : 1;
     uint32_t shared : 1;
-    uint32_t ignored : 2;
+    uint32_t type : 2;
     uint32_t physical_address : 20;
 };
 
@@ -32,7 +32,7 @@ int start_paging(physaddr_t start, physaddr_t end, uint32_t *directory, uint32_t
 {
     physaddr_t p = start;
     size_t count = 0;
-    while(p < end)
+    while (p < end)
     {
         uint32_t table_entry = p + 3;
         int index = p / page_size;
@@ -42,7 +42,7 @@ int start_paging(physaddr_t start, physaddr_t end, uint32_t *directory, uint32_t
         count++;
     }
     directory[0] = ((uint32_t)identity_table) + 3;
-    directory[1022] = ((uint32_t)table) + 3;
+    directory[1022] = ((uint32_t)table) + 3 + 1024;
     directory[1023] = ((uint32_t)directory) + 3;
     asm("mov %0, %%cr3"
         :
@@ -115,6 +115,7 @@ int map_page(struct page_stack_t *page_stack, void *page, physaddr_t frame, int 
     page_tables[table_index].present = 1;
     page_tables[table_index].usermode = (flags & PAGE_USERMODE) ? 1 : 0;
     page_tables[table_index].rw = (flags & PAGE_RW) ? 1 : 0;
+    page_tables[table_index].type = PAGE_ANON;
     asm volatile("invlpg (%0)"
                  :
                  : "r"(page)
@@ -126,7 +127,7 @@ physaddr_t unmap_page(void *page)
 {
     if ((size_t)page % page_size != 0)
     {
-        return S_OUT_OF_BOUNDS;
+        return S_INVALID_ARGUMENT;
     }
     size_t table_index = (size_t)page / page_size;
     size_t directory_index = table_index / (page_size / sizeof(struct page_table_entry_t));
@@ -143,5 +144,19 @@ physaddr_t unmap_page(void *page)
                      : "r"(page)
                      : "memory");
         return frame;
+    }
+}
+
+enum page_type_t page_type(void *page)
+{
+    size_t table_index = (size_t)page / page_size;
+    size_t directory_index = table_index / (page_size / sizeof(struct page_table_entry_t));
+    if (!page_directory[directory_index].present || !page_tables[table_index].present)
+    {
+        return PAGE_NOT_PRESENT;
+    }
+    else
+    {
+        return page_tables[table_index].type;
     }
 }
