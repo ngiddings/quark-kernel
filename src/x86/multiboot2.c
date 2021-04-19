@@ -1,4 +1,4 @@
-#include "multiboot2.h"
+#include "x86/multiboot2.h"
 #include "stdio.h"
 #include "string.h"
 
@@ -29,7 +29,7 @@ void *read_multiboot_table(struct boot_info_t *boot_info, void *table)
         {
             boot_info->modules[boot_info->module_count].start = ((struct multiboot2_module_t*) table)->start;
             boot_info->modules[boot_info->module_count].end = ((struct multiboot2_module_t*) table)->end;
-            strcpy(boot_info->modules[boot_info->module_count].str, ((struct multiboot2_module_t*) table)->str);
+            strcpy(boot_info->modules[boot_info->module_count].str, &((struct multiboot2_module_t*) table)->str);
             insert_region(&boot_info->map, 
                 ((struct multiboot2_module_t*) table)->start, 
                 ((struct multiboot2_module_t*) table)->end - ((struct multiboot2_module_t*) table)->start, 

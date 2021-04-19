@@ -1,5 +1,6 @@
 #pragma once
 
+#include "pageallocator.h"
 #include "process.h"
 #include <stddef.h>
 
@@ -21,7 +22,9 @@ struct resource_t
 struct resource_table_t
 {
     struct resource_t *array;
-    size_t capacity;
+    struct resource_t *limit;
 };
 
-int find_resource_slot(struct resource_table_t *table);
+int construct_resource_table(struct resource_table_t *table, struct page_stack_t *page_stack);
+
+int get_free_resource_slot(struct resource_table_t *table, struct page_stack_t *page_stack);

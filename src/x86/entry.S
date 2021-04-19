@@ -97,18 +97,20 @@ _multibootHeaderEnd:
 .section .bss
 
 .align 16
-stackBottom:
+stack_bottom:
 .skip 8192
-stackTop:
+.global stack_top
+stack_top:
 
 .align 4096
-_tempPgDir:
+.global default_page_dir
+default_page_dir:
 .skip 4096
-_tempIdentityMap:
+default_page_table:
 .skip 4096
-_tempPgTable:
+identity_map:
 .skip 4096
-	
+
 .section .text
 .global _start
 .type _start, @function
@@ -121,21 +123,21 @@ _start:
 	jne .err
 
 	# Initialize stack in physical address space
-	mov $stackTop, %esp
+	mov $stack_top, %esp
 	sub $BASE_DIFF, %esp
 
 	# Push physical address of identity map
-	mov $_tempIdentityMap, %eax
+	mov $identity_map, %eax
 	sub $BASE_DIFF, %eax
 	push %eax
 
 	# Push physical address of page table
-	mov $_tempPgTable, %eax
+	mov $default_page_table, %eax
 	sub $BASE_DIFF, %eax
 	push %eax
 
 	# Push physical address of page directory
-	mov $_tempPgDir, %eax
+	mov $default_page_dir, %eax
 	sub $BASE_DIFF, %eax
 	push %eax
 
@@ -165,7 +167,7 @@ _start:
 	mov %eax, %cr3
 
 	# Initialize stack in virtual memory
-	mov $stackTop, %esp
+	mov $stack_top, %esp
 
 	# Change EBX to point to the virtual address of the multiboot info
 	# If the new pointer is out-of-bounds, error

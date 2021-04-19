@@ -1,7 +1,7 @@
 #include "mmgr.h"
 #include "allocator.h"
-#include "apic.h"
-#include "msr.h"
+#include "x86/apic.h"
+#include "x86/msr.h"
 #include "stdio.h"
 #include <stddef.h>
 
@@ -37,7 +37,8 @@ void apic_enable(struct page_stact_t *page_stack)
     apic_registers = (struct apic_registers_t*)allocate_from_bottom(page_size);
     map_page(page_stack, apic_registers, msr.apic_base << 12, PAGE_RW);
     printf("MSR_APIC_BASE: %016x\n", *((uint32_t*)&msr));
-    apic_registers->spurious_iv.value = apic_registers->spurious_iv.value | 0x100;
+    apic_registers->spurious_iv.value = apic_registers->spurious_iv.value | 0x1FF;
+    apic_registers->destination_format.value = 0xFFFFFFFF;
 }
 
 void apic_eoi()

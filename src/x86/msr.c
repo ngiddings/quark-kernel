@@ -1,4 +1,4 @@
-#include "msr.h"
+#include "x86/msr.h"
 
 void read_msr(enum msr_id_t msr_addr, uint64_t *value)
 {

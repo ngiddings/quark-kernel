@@ -34,6 +34,7 @@ int free_page(struct page_stack_t *stack, physaddr_t location)
             return S_OUT_OF_BOUNDS;
         case S_OK:
             stack->limit_pointer = new_limit;
+            return S_OK;
         }
     }
     return S_OUT_OF_MEMORY;

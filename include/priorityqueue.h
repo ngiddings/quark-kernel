@@ -1,5 +1,6 @@
 #pragma once
 
+#include "pageallocator.h"
 #include "process.h"
 #include <stddef.h>
 
@@ -27,6 +28,8 @@ struct priority_queue_t
      */
     size_t capacity;
 };
+
+int construct_priority_queue(struct priority_queue_t *queue, struct page_stack_t *page_stack);
 
 /**
  * @brief 
