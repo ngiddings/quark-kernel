@@ -35,6 +35,7 @@ size_t cursor = 0;
 
 const size_t tab_width = 4;
 const size_t line_width = 80;
+const size_t line_count = 25;
 
 int initialize_screen()
 {
@@ -61,6 +62,21 @@ int putchar(int c)
     default:
         screen[cursor].c = (char) c;
         cursor++;
+    }
+    if(cursor >= line_count * line_width)
+    {
+        for(int i = 0; i < line_count * line_width; i++)
+        {
+            if(i < (line_count - 1) * line_width)
+            {
+                screen[i] = screen[i + line_width];
+            }
+            else
+            {
+                screen[i].c = ' ';
+            }
+        }
+        cursor -= line_width;
     }
     return c;
 }
