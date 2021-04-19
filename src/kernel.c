@@ -5,9 +5,29 @@
 #include "context.h"
 #include "types/status.h"
 
+syscall_t syscall_table[32];
+
+void construct_kernel_state(struct kernel_t *kernel, struct page_stack_t *page_stack, 
+    struct priority_queue_t *priority_queue, struct resource_table_t *resource_table,
+    size_t module_count, struct module_t *module_list)
+{
+    kernel->page_stack = page_stack;
+    kernel->resource_table = resource_table;
+    kernel->priority_queue = priority_queue;
+    kernel->active_process = NULL;
+    for(int i = 0; i < module_count; i++)
+    {
+        load_module(&kernel_state, &module_list[i]);
+    }
+}
+
 size_t do_syscall(struct kernel_t *kernel, enum syscall_id_t id, size_t arg1, size_t arg2, size_t arg3)
 {
-
+    if(syscall_table[id] == NULL)
+    {
+        return S_BAD_SYSCALL;
+    }
+    return syscall_table[id](kernel, arg1, arg2, arg3);
 }
 
 int load_module(struct kernel_t *kernel, struct module_t *module)
