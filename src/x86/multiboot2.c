@@ -1,4 +1,4 @@
-#include "multiboot2.h"
+#include "x86/multiboot2.h"
 #include "stdio.h"
 #include "string.h"
 

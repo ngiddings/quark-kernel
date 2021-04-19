@@ -26,6 +26,6 @@ size_t do_syscall(struct kernel_t *kernel, enum syscall_id_t id, size_t arg1, si
 
 int load_module(struct kernel_t *kernel, struct module_t *module);
 
-struct process_state_t *next_process(struct kernel_t *kernel, struct process_state_t *prev_state) __attribute__((noreturn));
+struct process_state_t *next_process(struct kernel_t *kernel, struct process_state_t *prev_state);
 
 void panic(const char *message) __attribute__ ((noreturn));

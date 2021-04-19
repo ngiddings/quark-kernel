@@ -66,7 +66,7 @@ int load_module(struct kernel_t *kernel, struct module_t *module)
 }
 
 struct process_state_t *next_process(struct kernel_t *kernel, struct process_state_t *prev_state)
-{
+{  
     if(prev_state != NULL)
     {
         kernel->active_process->state = prev_state;
@@ -75,9 +75,9 @@ struct process_state_t *next_process(struct kernel_t *kernel, struct process_sta
     kernel->active_process = extract_min(kernel->priority_queue);
     if(kernel->active_process != NULL)
     {
-        printf("entering process %08x\n\tcr3=%08x state=%08x.\n", kernel->active_process, kernel->active_process->page_table, kernel->active_process->state);
         load_address_space(kernel->active_process->page_table);
-        load_context(kernel->active_process->state);
+        printf("entering process %08x cr3=%08x state=%08x.\n", kernel->active_process, kernel->active_process->page_table, kernel->active_process->state);
+        return kernel->active_process->state;
     }
     panic("no processes available to enter!");
 }

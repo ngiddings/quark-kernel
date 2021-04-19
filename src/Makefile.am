@@ -13,6 +13,8 @@ quark_kernel_SOURCES += x86/mmgr.c \
                         x86/isr.c \
                         x86/msr.c \
                         x86/context.c \
+                        x86/contextswitch.S \
+                        x86/preempt.S \
                         x86/quark_x86.c \
                         x86/entry.S 
 quark_kernel_LDFLAGS += -T x86/linker.ld

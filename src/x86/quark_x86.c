@@ -3,21 +3,17 @@
 #include "allocator.h"
 #include "mmgr.h"
 #include "priorityqueue.h"
-#include "multiboot2.h"
+#include "x86/multiboot2.h"
 #include "memorymap.h"
-#include "apic.h"
-#include "interrupts.h"
+#include "x86/apic.h"
+#include "x86/interrupts.h"
 #include "stdio.h"
 #include "string.h"
 #include "module.h"
+#include "system.h"
 #include "config.h"
 #include <stdint.h>
 #include <stddef.h>
-
-extern int _kernel_pstart;
-extern int _kernel_pend;
-extern int _kernel_start;
-extern int _kernel_end;
 
 struct kernel_t kernel_state;
 
@@ -51,11 +47,11 @@ int initialize(void *multiboot_info)
     }
     initialize_screen();
     printf("***%s***\n", PACKAGE_STRING);
-    printf("Type\t\tLocation\t\tSize\n");
+    /*printf("Type\t\tLocation\t\tSize\n");
     for (size_t i = 0; i < boot_info.map.size && boot_info.map.array[i].size > 0; i++)
     {
         printf("%i\t\t\t%08x\t\t%u\n", boot_info.map.array[i].type, boot_info.map.array[i].location, boot_info.map.array[i].size);
-    }
+    }*/
     page_stack.base_pointer = (physaddr_t*)0xFFC00000;
     page_stack.stack_pointer = (physaddr_t*)0xFFC00000;
     page_stack.limit_pointer = (physaddr_t*)0xFFC00000;
@@ -73,13 +69,13 @@ int initialize(void *multiboot_info)
         load_module(&kernel_state, &boot_info.modules[i]);
     }
     apic_enable(page_stack);
-    apic_registers->divide_config.value = APIC_DIVIDE_16;
-    apic_registers->lvt_timer.vector = ISR_PREEMPT;
+    /*apic_registers->divide_config.value = APIC_DIVIDE_1;
     apic_registers->lvt_timer.timer_mode = APIC_TIMER_PERIODIC;
+    apic_registers->lvt_timer.vector = ISR_PREEMPT;
     apic_registers->lvt_timer.mask = 0;
-    apic_registers->initial_count.value = 1024*1024*128;
+    apic_registers->initial_count.value = 1024*1024;*/
     asm("sti");
-    next_process(&kernel_state, NULL);
+    load_context(next_process(&kernel_state, NULL));
     while(1) asm("hlt");
     
 }
