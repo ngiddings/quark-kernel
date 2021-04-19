@@ -22,7 +22,7 @@ int load_program(struct elf_file_header_t *elf, struct page_stack_t *page_stack)
                 {
                     return S_OUT_OF_MEMORY;
                 }
-                int status = map_page(page_stack, d, page, PAGE_RW | PAGE_USERMODE | PAGE_EXECUTABLE);
+                int status = map_page(page_stack, d + n, page, PAGE_RW | PAGE_USERMODE | PAGE_EXECUTABLE);
                 switch(status)
                 {
                 case S_OUT_OF_MEMORY:
@@ -30,7 +30,7 @@ int load_program(struct elf_file_header_t *elf, struct page_stack_t *page_stack)
                 case S_OUT_OF_BOUNDS:
                     return status;
                 case S_OK:
-                    memcpy(d, s, page_size);
+                    memcpy(d + n, s + n, n + page_size < program_header->memsize ? page_size : program_header->memsize - n);
                 }
             }
         }
