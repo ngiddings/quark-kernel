@@ -251,6 +251,6 @@ void initialize_idt()
     create_interrupt_descriptor(&idt[EXCEPTION_DOUBLE_FAULT], (void*)isr_double_fault, INTERRPUT_TASK32, 0, 8 * 6);
     create_interrupt_descriptor(&idt[ISR_PREEMPT], (void*)isr_preempt, INTERRPUT_INT32, 3, 8);
     create_interrupt_descriptor(&idt[ISR_APIC_TIMER], (void*)isr_timer, INTERRPUT_INT32, 0, 8);
-    create_interrupt_descriptor(&idt[ISR_SYSCALL], (void*)isr_syscall, INTERRPUT_INT32, 0, 8);
+    create_interrupt_descriptor(&idt[ISR_SYSCALL], (void*)isr_syscall, INTERRPUT_INT32, 3, 8);
     load_idt(idt);
 }
