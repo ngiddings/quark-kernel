@@ -65,7 +65,3 @@ void isr_timer(struct interrupt_frame_t *frame)
     printf("Timer tick.\n");
     apic_eoi();
 }
-
-void isr_syscall(struct interrupt_frame_t *frame)
-{
-}
