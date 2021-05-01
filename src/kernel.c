@@ -3,6 +3,7 @@
 #include "stdio.h"
 #include "elf.h"
 #include "context.h"
+#include "string.h"
 #include "types/status.h"
 
 syscall_t syscall_table[32];
@@ -79,13 +80,14 @@ int load_module(struct kernel_t *kernel, struct module_t *module)
     }
     kernel->resource_table->array[index].type = RESOURCE_PROCESS;
     kernel->resource_table->array[index].process.priority = 1;
+    kernel->resource_table->array[index].process.resource_id = index;
     kernel->resource_table->array[index].process.state = module_context;
     kernel->resource_table->array[index].process.page_table = current_address_space();
     queue_insert(kernel->priority_queue, &kernel->resource_table->array[index].process);
     return S_OK;
 }
 
-struct process_state_t *next_process(struct kernel_t *kernel, struct process_state_t *prev_state)
+struct process_context_t *next_process(struct kernel_t *kernel, struct process_context_t *prev_state)
 {  
     if(prev_state != NULL)
     {
@@ -100,6 +102,79 @@ struct process_state_t *next_process(struct kernel_t *kernel, struct process_sta
         return kernel->active_process->state;
     }
     panic("no processes available to enter!");
+}
+
+int terminate_process(struct kernel_t *kernel, size_t process_id)
+{
+    if(kernel == NULL)
+    {
+        return S_NULL_POINTER;
+    }
+    else if(kernel->resource_table->limit >= process_id)
+    {
+        return S_OUT_OF_BOUNDS;
+    }
+    else if(kernel->resource_table->array[process_id].type != RESOURCE_PROCESS)
+    {
+        return S_INVALID_ARGUMENT;
+    }
+    struct process_t *process = &kernel->resource_table->array[process_id].process;
+    kernel->resource_table->array[process_id].type = RESOURCE_UNAVAILABLE;
+    if(kernel->active_process == process)
+    {
+        kernel->active_process = NULL;
+    }
+    queue_remove(kernel->priority_queue, process);
+    return S_OK;
+}
+
+int accept_message(struct kernel_t *kernel, size_t process_id, struct message_t *message)
+{
+    if(kernel == NULL || message == NULL)
+    {
+        return S_NULL_POINTER;
+    }
+    else if(kernel->resource_table->limit >= process_id)
+    {
+        return S_OUT_OF_BOUNDS;
+    }
+    else if(kernel->resource_table->array[process_id].type != RESOURCE_PROCESS)
+    {
+        return S_INVALID_ARGUMENT;
+    }
+    struct process_t *process = &kernel->resource_table->array[process_id].process;
+    process->state = PROCESS_WAITING;
+    process->message = message;
+    if(kernel->active_process == process)
+    {
+        kernel->active_process = NULL;
+    }
+    queue_remove(kernel->priority_queue, process);
+    return S_OK;
+}
+
+int send_message(struct kernel_t *kernel, size_t process_id, const struct message_t *message)
+{
+    if(kernel == NULL || message == NULL)
+    {
+        return S_NULL_POINTER;
+    }
+    else if(kernel->resource_table->limit >= process_id)
+    {
+        return S_OUT_OF_BOUNDS;
+    }
+    else if(kernel->resource_table->array[process_id].type != RESOURCE_PROCESS)
+    {
+        return S_INVALID_ARGUMENT;
+    }
+    struct process_t *process = &kernel->resource_table->array[process_id].process;
+    if(process->state != PROCESS_WAITING || process->message == NULL)
+    {
+        return S_BUSY;
+    }
+    queue_insert(kernel->priority_queue, kernel->active_process);
+    struct message_t buffer = *message;
+
 }
 
 void panic(const char *message)

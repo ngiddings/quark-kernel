@@ -9,5 +9,6 @@ enum status_t
     S_OUT_OF_MEMORY,
     S_DOESNT_EXIST,
     S_EXISTS,
-    S_BAD_SYSCALL
+    S_BAD_SYSCALL,
+    S_BUSY
 };

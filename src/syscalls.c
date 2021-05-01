@@ -81,3 +81,8 @@ size_t munmap(struct kernel_t *kernel, size_t location, size_t length, size_t ar
     }
     return status;
 }
+
+size_t terminate_self(struct kernel_t *kernel, size_t arg1, size_t arg2, size_t arg3)
+{
+    return terminate_process(kernel, kernel->active_process->resource_id);
+}

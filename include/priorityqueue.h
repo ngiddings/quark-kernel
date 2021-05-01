@@ -1,7 +1,7 @@
 #pragma once
 
 #include "pageallocator.h"
-#include "process.h"
+#include "kernel.h"
 #include <stddef.h>
 
 /**

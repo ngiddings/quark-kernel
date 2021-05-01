@@ -14,7 +14,7 @@ void *initialize_context(void *task_entry, struct page_stack_t *page_stack)
         "mov (%%esp), %0; "
         "popf; "
         : "=r"(flags));
-    struct process_state_t *state = (struct process_state_t*)PCB_LOCATION;
+    struct process_context_t *state = (struct process_context_t*)PCB_LOCATION;
     memset(NULL, 0, page_size);
     state->cs = 0x1B;
     state->eip = (uint32_t)task_entry;

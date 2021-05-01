@@ -70,3 +70,11 @@ physaddr_t unmap_page(void *page);
  * @return enum page_type_t 
  */
 enum page_type_t page_type(void *page);
+
+/**
+ * @brief 
+ * 
+ * @param linear_address 
+ * @return physaddr_t 
+ */
+physaddr_t physical_address(void *linear_address);
