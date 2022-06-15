@@ -1,23 +1,62 @@
 #pragma once
 
-#include "pageallocator.h"
+#include "memmap.h"
+#include "platform/paging.h"
 #include "types/physaddr.h"
-
-enum page_flag_t
-{
-    PAGE_RW = 1,
-    PAGE_EXECUTABLE = 1 << 1,
-    PAGE_USERMODE = 1 << 2
-};
-
-enum page_type_t
-{
-    PAGE_NOT_PRESENT = 0,
-    PAGE_ANON = 1,
-    PAGE_COPY_ON_WRITE = 2
-};
+#include <stddef.h>
 
 extern const size_t page_size;
+
+/**
+ * @brief Pop the topmost address from the stack and returns that value.
+ * 
+ * If the stack is empty, this function will instead return a status code. This
+ * can be identified by testing the least signifigant bits of the return value.
+ * 
+ * @param stack 
+ * @return physaddr_t 
+ */
+physaddr_t reserve_page();
+
+/**
+ * @brief Pushes `location` onto the stack.
+ * 
+ * If there is no room on the stack, the stack will be unaffected.
+ * 
+ * @param stack 
+ * @param location 
+ */
+int free_page(physaddr_t location);
+
+/**
+ * @brief Computes the number of available pages.
+ * 
+ * @param stack 
+ * @return size_t 
+ */
+size_t free_page_count();
+
+/**
+ * @brief Get the location of the bottom of the page stack.
+ * 
+ * @return void* 
+ */
+void *page_stack_bottom();
+
+/**
+ * @brief Get the location of the top of the page stack.
+ * 
+ * @return void* 
+ */
+void *page_stack_top();
+
+/**
+ * @brief Push all available pages in `map` onto the stack
+ * 
+ * @param stack 
+ * @param map 
+ */
+int initialize_page_stack(struct memory_map_t *map, physaddr_t *stack_base);
 
 /**
  * @brief Create a new top-level page table and map the kernel in it.
@@ -26,14 +65,7 @@ extern const size_t page_size;
  * 
  * @return physaddr_t 
  */
-physaddr_t create_address_space(struct page_stack_t *page_stack);
-
-/**
- * @brief Load an existing top-level page table
- * 
- * @param table 
- */
-void load_address_space(physaddr_t table);
+physaddr_t create_address_space();
 
 /**
  * @brief Returns the physical address of the top-level page table currently in
@@ -52,7 +84,7 @@ physaddr_t current_address_space();
  * @param flags 
  * @return int 
  */
-int map_page(struct page_stack_t *page_stack, void *page, physaddr_t frame, int flags);
+int map_page(void *page, physaddr_t frame, int flags);
 
 /**
  * @brief Unmaps a single page, returning the physical address of the frame it
@@ -69,7 +101,7 @@ physaddr_t unmap_page(void *page);
  * @param page 
  * @return enum page_type_t 
  */
-enum page_type_t page_type(void *page);
+int page_type(void *page);
 
 /**
  * @brief 

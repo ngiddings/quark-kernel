@@ -1,9 +1,8 @@
 #pragma once
 
-#include "pageallocator.h"
-#include "kernel.h"
+void *initialize_context(void *task_entry);
 
-void *initialize_context(void *task_entry, struct page_stack_t *page_stack);
+void destroy_context(void *ctx);
 
 void save_context(struct process_context_t *context, void *ptr);
 

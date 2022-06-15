@@ -1,14 +1,14 @@
 #pragma once
 
-#include "pageallocator.h"
+#include "avltree.h"
+#include "memmap.h"
 #include "priorityqueue.h"
-#include "resource.h"
-#include "module.h"
-#include "memorymap.h"
-#include "syscallid.h"
+#include "mmgr.h"
+#include "syscalls.h"
 #include <stddef.h>
 
-typedef size_t (*syscall_t)(struct kernel_t*, size_t, size_t, size_t);
+#define MAX_SYSCALL_ID 256
+#define module_limit 8
 
 enum process_state_t
 {
@@ -17,6 +17,22 @@ enum process_state_t
 };
 
 struct process_context_t;
+
+struct module_t
+{
+    physaddr_t start;
+    physaddr_t end;
+    char str[64 - 2 * sizeof(physaddr_t)];
+};
+
+struct boot_info_t
+{
+    char *bootloader;
+    char *parameters;
+    size_t module_count;
+    struct memory_map_t map;
+    struct module_t modules[module_limit];
+};
 
 struct message_t
 {
@@ -35,30 +51,33 @@ struct process_t
 
 struct kernel_t
 {
-    struct page_stack_t *page_stack;
-    struct priority_queue_t *priority_queue;
-    struct resource_table_t *resource_table;
+    struct syscall_t syscall_table[MAX_SYSCALL_ID];
+    struct priority_queue_t priority_queue;
+    struct avltree_t *process_table;
     struct process_t *active_process;
+    int next_pid;
 };
 
-extern syscall_t syscall_table[32];
+void kernel_initialize(struct boot_info_t *boot_info);
 
-extern struct kernel_t kernel_state;
+int set_syscall(int id, int arg_count, int pid, void *func_ptr);
 
-void construct_kernel_state(struct kernel_t *kernel, struct page_stack_t *page_stack, 
-    struct priority_queue_t *priority_queue, struct resource_table_t *resource_table,
-    size_t module_count, struct module_t *module_list);
+size_t do_syscall(enum syscall_id_t id, syscall_arg_t arg1, syscall_arg_t arg2, syscall_arg_t arg3);
 
-size_t do_syscall(struct kernel_t *kernel, enum syscall_id_t id, size_t arg1, size_t arg2, size_t arg3);
+int load_module(struct module_t *module);
 
-int load_module(struct kernel_t *kernel, struct module_t *module);
+int active_process();
 
-struct process_context_t *next_process(struct kernel_t *kernel, struct process_context_t *prev_state);
+int add_process(void *program_entry, int priority, physaddr_t address_space);
 
-int terminate_process(struct kernel_t *kernel, size_t process_id);
+struct process_context_t *next_process(struct process_context_t *prev_state);
 
-int accept_message(struct kernel_t *kernel, size_t process_id, struct message_t *message);
+int terminate_process(size_t process_id);
 
-int send_message(struct kernel_t *kernel, size_t process_id, const struct message_t *message);
+/*
+int accept_message(size_t process_id, struct message_t *message);
+
+int send_message(size_t process_id, const struct message_t *message);
+*/
 
 void panic(const char *message) __attribute__ ((noreturn));

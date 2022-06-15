@@ -9,6 +9,9 @@ __attribute__ ((interrupt))
 void isr_division_by_zero(struct interrupt_frame_t *frame);
 
 __attribute__ ((interrupt))
+void isr_segment_not_present(struct interrupt_frame_t *frame, unsigned int error);
+
+__attribute__ ((interrupt))
 void isr_gp_fault(struct interrupt_frame_t *frame, unsigned int error);
 
 __attribute__ ((interrupt))

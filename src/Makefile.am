@@ -1,13 +1,14 @@
 noinst_PROGRAMS = quark-kernel
-quark_kernel_SOURCES = kernel.c memorymap.c pageallocator.c priorityqueue.c stdio.c string.c elf.c resource.c allocator.c syscalls.c
+quark_kernel_SOURCES = kernel.c mmgr.c priorityqueue.c stdio.c string.c elf.c syscalls.c heap.c memmap.c avltree.c
 quark_kernel_LDADD = -lgcc
 quark_kernel_CFLAGS = -I$(top_srcdir)/include -ffreestanding -mgeneral-regs-only -O0 -Wall -ggdb
 quark_kernel_LDFLAGS = -nostdlib
 
 if x86
-quark_kernel_SOURCES += x86/mmgr.c \
+quark_kernel_SOURCES += x86/paging.c \
                         x86/putc.c \
                         x86/multiboot2.c \
+                        x86/idt.c \
                         x86/interrupts.c \
                         x86/apic.c \
                         x86/isr.c \

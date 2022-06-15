@@ -30,7 +30,7 @@
 
 .set tagEntryType, 3
 .set tagEntrySize, 12
-.set tagEntryAddress, _start - (0xFF800000 - 0x100000)
+.set tagEntryAddress, _entry_paddr
 
 .set tagModuleAlignType, 6
 .set tagModuleAlignSize, 8
@@ -150,6 +150,10 @@ _start:
 	mov $PHYSICAL_BASE, %eax
 	push %eax
 
+	# Push kernel's starting linear address
+	mov $VIRTUAL_BASE, %eax
+	push %eax
+
 	# Load physical address of startPaging()
 	mov $start_paging, %eax
 	sub $BASE_DIFF, %eax
@@ -171,15 +175,15 @@ _start:
 
 	# Change EBX to point to the virtual address of the multiboot info
 	# If the new pointer is out-of-bounds, error
-	add $0xFF700000, %ebx
-	cmp $0xFF800000, %ebx
+	add $BASE_DIFF, %ebx
+	cmp $VIRTUAL_BASE, %ebx
 	jl .err
 	cmp $0xFFC00000, %ebx
 	jge .err
 
-	# Call initialize(void* multibootInfo)
+	# Call x86_startup(void* multibootInfo)
 	push %ebx
-	call initialize
+	call x86_startup
 
 .err:
 	cli

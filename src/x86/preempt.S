@@ -8,14 +8,13 @@ isr_syscall:
     push %ecx
     push %ebx
     push %eax
-    push $kernel_state
     mov $0x10, %ax
     mov %ax, %ds
     mov %ax, %es
     mov %ax, %fs
     mov %ax, %gs
     call do_syscall
-    add $0x14, %esp
+    add $0x10, %esp
     mov $0x23, %cx
     mov %cx, %ds
     mov %cx, %es
@@ -32,7 +31,6 @@ isr_preempt:
     call save_context
     add $8, %esp
     push $0x800
-    push $kernel_state
     call next_process
     add $8, %esp
     push %eax

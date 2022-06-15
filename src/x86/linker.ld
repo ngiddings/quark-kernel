@@ -2,7 +2,7 @@ ENTRY(_start)
 
 SECTIONS
 {
-	. = 0xFF800000;
+	. = 0xFF400000;
 	VIRTUAL_BASE = .;
 	PHYSICAL_BASE = 0x100000;
 	BASE_DIFF = VIRTUAL_BASE - PHYSICAL_BASE;
@@ -38,4 +38,5 @@ SECTIONS
 	_kernel_pend = PHYSICAL_BASE + (4096 * IMAGE_SIZE);
 	_kernel_start = VIRTUAL_BASE;
 	_kernel_end = VIRTUAL_BASE + (4096 * IMAGE_SIZE);
+	_entry_paddr = _start - _kernel_start + _kernel_pstart;
 }

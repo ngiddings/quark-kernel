@@ -1,4 +1,5 @@
 #include "stdio.h"
+#include "platform/putc.h"
 #include <stddef.h>
 #include <stdbool.h>
 

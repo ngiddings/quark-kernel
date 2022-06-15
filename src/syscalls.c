@@ -4,14 +4,17 @@
 #include "stdio.h"
 #include "types/status.h"
 
-size_t test_syscall(struct kernel_t *kernel, size_t arg1, size_t arg2, size_t arg3)
+size_t test_syscall(syscall_arg_t str)
 {
-    printf("%s", (char*)arg1);
+    printf("%s", (char*)str.ptr);
     return 17;
 }
 
-size_t mmap(struct kernel_t *kernel, size_t location, size_t length, size_t flags)
+size_t mmap(syscall_arg_t arg_location, syscall_arg_t arg_length, syscall_arg_t arg_flags)
 {
+    unsigned long location = arg_location.unsigned_int;
+    unsigned long length = arg_length.unsigned_int;
+    unsigned long flags = arg_flags.unsigned_int;
     if(location % page_size != 0 || length % page_size != 0)
     {
         return S_INVALID_ARGUMENT;
@@ -22,7 +25,7 @@ size_t mmap(struct kernel_t *kernel, size_t location, size_t length, size_t flag
     }
     for(size_t i = 0; i < length; i += page_size)
     {
-        if(page_type((void*)(location + i)) != PAGE_NOT_PRESENT)
+        if(page_type((void*)(location + i)) & PAGE_PRESENT)
         {
             return S_EXISTS;
         }
@@ -31,12 +34,12 @@ size_t mmap(struct kernel_t *kernel, size_t location, size_t length, size_t flag
     int status = S_OK;
     while(n < length && status == S_OK)
     {
-        physaddr_t frame = reserve_page(kernel->page_stack);
+        physaddr_t frame = reserve_page();
         status = frame % page_size;
         if(status == S_OK)
         {
-            status = map_page(kernel->page_stack, (void*)(location + n), frame, PAGE_USERMODE | PAGE_RW);
-            if(status != S_OK && free_page(kernel->page_stack, frame) != S_OK)
+            status = map_page((void*)(location + n), frame, PAGE_USERMODE | PAGE_RW);
+            if(status != S_OK && free_page(frame) != S_OK)
             {
                 panic("critical error reached during mmap.");
             }
@@ -47,15 +50,17 @@ size_t mmap(struct kernel_t *kernel, size_t location, size_t length, size_t flag
             break;
         }
     }
-    if(status != S_OK && munmap(kernel, location, page_size, NULL) != S_OK)
+    if(status != S_OK && munmap(arg_location, arg_length) != S_OK)
     {
         panic("critical error reached during mmap.");
     }
     return status;
 }
 
-size_t munmap(struct kernel_t *kernel, size_t location, size_t length, size_t arg3)
+size_t munmap(syscall_arg_t arg_location, syscall_arg_t arg_length)
 {
+    unsigned long location = arg_location.unsigned_int;
+    unsigned long length = arg_length.unsigned_int;
     if(location % page_size != 0 || length % page_size != 0)
     {
         return S_INVALID_ARGUMENT;
@@ -68,21 +73,21 @@ size_t munmap(struct kernel_t *kernel, size_t location, size_t length, size_t ar
     int status = S_OK;
     while(n < length && status == S_OK)
     {
-        enum page_type_t type = page_type((void*)(location + n));
+        int type = page_type((void*)(location + n));
         physaddr_t frame;
-        if(type != PAGE_NOT_PRESENT)
+        if(type & PAGE_PRESENT)
         {
             frame = unmap_page((void*)(location + n));
-        }
-        if(type == PAGE_ANON)
-        {
-            status = free_page(kernel->page_stack, frame);
+            if(type & PAGE_ANON)
+            {
+                status = free_page(frame);
+            }
         }
     }
     return status;
 }
 
-size_t terminate_self(struct kernel_t *kernel, size_t arg1, size_t arg2, size_t arg3)
+size_t terminate_self()
 {
-    return terminate_process(kernel, kernel->active_process->resource_id);
+    return terminate_process(active_process());
 }
