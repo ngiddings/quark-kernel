@@ -1,4 +1,4 @@
-#include "memorymap.h"
+#include "memmap.h"
 #include <stdbool.h>
 
 int compare_regions(struct memory_region_t *lhs, struct memory_region_t *rhs)

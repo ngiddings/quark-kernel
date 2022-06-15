@@ -27,3 +27,5 @@ stamp-h1
 rootfs/apps
 test/
 doc/
+bochsrc
+bx_enh_dbg.ini

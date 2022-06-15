@@ -61,7 +61,7 @@ struct apic_register_t
 {
     uint32_t value;
     uint32_t padding[3];
-};
+} __attribute__ ((packed));
 
 struct apic_lapic_version_t
 {
@@ -71,7 +71,7 @@ struct apic_lapic_version_t
     uint32_t suppress_eoi_broadcast : 1;
     uint32_t reserved_2 : 7;
     uint32_t padding[3];
-};
+} __attribute__ ((packed));
 
 struct apic_lvt_t
 {
@@ -86,7 +86,7 @@ struct apic_lvt_t
     uint32_t timer_mode : 2;
     uint32_t reserved_2 : 13;
     uint32_t padding[3];
-};
+} __attribute__ ((packed));
 
 struct apic_icr_t
 {
@@ -104,7 +104,7 @@ struct apic_icr_t
     uint32_t reserved : 24;
     uint32_t destination : 8;
     uint32_t padding_2[3];
-};
+} __attribute__ ((packed));
 
 struct apic_registers_t
 {
@@ -138,9 +138,10 @@ struct apic_registers_t
     struct apic_register_t reserved_4[4];
     struct apic_register_t divide_config;
     struct apic_register_t reserved_5;
-};
+    struct apic_register_t reserved_76[16 * 12];
+} __attribute__ ((packed));
 
-extern struct apic_registers_t volatile *apic_registers;
+extern struct apic_registers_t volatile apic_registers;
 
 void apic_enable();
 

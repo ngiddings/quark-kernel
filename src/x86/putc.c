@@ -1,7 +1,5 @@
-#include "stdio.h"
+#include "platform/putc.h"
 #include "mmgr.h"
-#include "allocator.h"
-#include <stddef.h>
 
 enum vga_color_t {
 	VGA_COLOR_BLACK = 0,
@@ -30,16 +28,17 @@ struct cell_t
     char bg : 4;
 };
 
-struct cell_t *screen = (struct cell_t*)NULL;
-size_t cursor = 0;
+unsigned int cursor = 0;
 
-const size_t tab_width = 4;
-const size_t line_width = 80;
+const unsigned int tab_width = 4;
+const unsigned int line_width = 80;
+const unsigned int line_count = 25;
+
+struct cell_t screen[4096 / sizeof(struct cell_t)] __attribute__ ((aligned (4096)));
 
 int initialize_screen()
 {
-    screen = allocate_from_bottom(page_size);
-    map_page(NULL, screen, 0x000B8000, PAGE_RW);
+    return map_page(screen, 0x000B8000, PAGE_RW);
 }
 
 int putchar(int c)
@@ -61,6 +60,21 @@ int putchar(int c)
     default:
         screen[cursor].c = (char) c;
         cursor++;
+    }
+    if(cursor >= line_count * line_width)
+    {
+        for(int i = 0; i < line_count * line_width; i++)
+        {
+            if(i < (line_count - 1) * line_width)
+            {
+                screen[i] = screen[i + line_width];
+            }
+            else
+            {
+                screen[i].c = ' ';
+            }
+        }
+        cursor -= line_width;
     }
     return c;
 }

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "pageallocator.h"
+#include "mmgr.h"
 #include "types/physaddr.h"
 #include <stdint.h>
 
@@ -115,4 +115,4 @@ struct elf_section_header_t
     static const enum elf_isa_t HOST_ISA = ELF_ISA_AARCH64;
 #endif
 
-int load_program(struct elf_file_header_t *elf, struct page_stack_t *page_stack);
+int load_program(struct elf_file_header_t *elf);

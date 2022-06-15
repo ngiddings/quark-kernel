@@ -4,7 +4,7 @@
 
 #define PCB_LOCATION 0x800
 
-struct process_state_t
+struct process_context_t
 {
     uint32_t eax;
     uint32_t ebx;

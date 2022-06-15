@@ -1,5 +1,4 @@
 #include "mmgr.h"
-#include "allocator.h"
 #include "x86/apic.h"
 #include "x86/msr.h"
 #include "stdio.h"
@@ -7,9 +6,9 @@
 
 extern int _kernel_end;
 
-struct apic_registers_t volatile *apic_registers;
+struct apic_registers_t volatile apic_registers __attribute__ ((aligned (4096)));
 
-void apic_enable(struct page_stact_t *page_stack)
+void apic_enable()
 {
     // Remap and mask 8259 PIC
     asm volatile(
@@ -32,18 +31,19 @@ void apic_enable(struct page_stact_t *page_stack)
         "outb %%al, $0x21;"
         ::: "al"
     );
+    printf("APIC register size: %04x\n", sizeof(struct apic_register_t));
     struct msr_apic_base_t msr;
     read_msr(MSR_APIC_BASE, (uint64_t*)&msr);
-    apic_registers = (struct apic_registers_t*)allocate_from_bottom(page_size);
-    map_page(page_stack, apic_registers, msr.apic_base << 12, PAGE_RW);
+    map_page(&apic_registers, msr.apic_base << 12, PAGE_RW);
     printf("MSR_APIC_BASE: %016x\n", *((uint32_t*)&msr));
-    apic_registers->spurious_iv.value = apic_registers->spurious_iv.value | 0x1FF;
-    apic_registers->destination_format.value = 0xFFFFFFFF;
+    apic_registers.spurious_iv.value = apic_registers.spurious_iv.value | 0x1FF;
+    apic_registers.destination_format.value = 0xFFFFFFFF;
+    printf("Finished enabling APIC.\n");
 }
 
 void apic_eoi()
 {
-    apic_registers->eoi.value = 0;
+    apic_registers.eoi.value = 0;
 }
 
 void apic_send_ipi(
@@ -65,7 +65,7 @@ void apic_send_ipi(
         .destination = destination
     };
     uint32_t *value_addr = (uint32_t*) &value;
-    uint32_t *icr_addr = (uint32_t*)&apic_registers->interrput_command;
+    uint32_t *icr_addr = (uint32_t*)&apic_registers.interrput_command;
     icr_addr[4] = value_addr[4];
     icr_addr[0] = value_addr[0];
 }

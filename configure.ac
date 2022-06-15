@@ -5,7 +5,7 @@ AC_PREREQ([2.69])
 AC_INIT([quark-kernel], [pre-alpha])
 AM_INIT_AUTOMAKE([-Wall foreign subdir-objects])
 AC_CONFIG_SRCDIR([src/kernel.c])
-AC_CONFIG_HEADERS([src/config.h])
+AC_CONFIG_HEADERS([include/config.h])
 
 # Checks for programs.
 AC_PROG_CC
