@@ -40,6 +40,12 @@ struct message_t
     uint32_t param1, param2, param3;
 };
 
+struct address_space_t
+{
+    physaddr_t top_table;
+    int counter;
+};
+
 struct process_t
 {
     size_t priority;
@@ -70,9 +76,13 @@ int active_process();
 
 int add_process(void *program_entry, int priority, physaddr_t address_space);
 
-struct process_context_t *next_process(struct process_context_t *prev_state);
+struct process_context_t *next_process();
 
 int terminate_process(size_t process_id);
+
+int store_active_context(struct process_context_t *context, size_t size);
+
+struct process_context_t *get_active_context();
 
 /*
 int accept_message(size_t process_id, struct message_t *message);

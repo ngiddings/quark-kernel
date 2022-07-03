@@ -14,7 +14,7 @@ quark_kernel_SOURCES += x86/paging.c \
                         x86/isr.c \
                         x86/msr.c \
                         x86/context.c \
-                        x86/contextswitch.S \
+                        x86/load_context.S \
                         x86/preempt.S \
                         x86/quark_x86.c \
                         x86/entry.S 

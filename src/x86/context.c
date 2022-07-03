@@ -1,35 +1,45 @@
 #include "platform/context.h"
+#include "kernel.h"
 #include "mmgr.h"
+#include "heap.h"
 #include "string.h"
+#include "system.h"
 #include "x86/processstate.h"
 
 void *initialize_context(void *task_entry)
 {
-    /* 
-     * TODO: this implementation is a goddamn mess.
-     * Stack pointer is hardcoded, and the stack isn't resizable.
-     * PCB pointer is just a constant.
-     */
-    map_page(NULL, reserve_page(), PAGE_RW);
-    map_page((void*)0xFF3FF000, reserve_page(), PAGE_RW | PAGE_USERMODE);
-    unmap_page((void*)0xFF3FE000);
-    uint32_t flags;
-    asm("pushf; "
-        "mov (%%esp), %0; "
-        "popf; "
-        : "=r"(flags));
-    struct process_context_t *state = (struct process_context_t*)PCB_LOCATION;
-    memset(NULL, 0, page_size);
-    state->cs = 0x1B;
-    state->eip = (uint32_t)task_entry;
-    state->flags = (flags & ~0xFD) | 0x200;
-    state->ss = 0x23;
-    state->esp = 0xFF400000;
-    state->ebp = 0xFF400000;
-    return (void*)state;
+    physaddr_t stack_frame = reserve_page();
+    if(stack_frame % page_size != 0)
+    {
+        return NULL;
+    }
+    map_page((void*)&_kernel_start - page_size, stack_frame, PAGE_RW | PAGE_USERMODE);
+    unmap_page((void*)&_kernel_start - (2 * page_size));
+    struct process_context_t *context = kmalloc(sizeof(struct process_context_t));
+    if(context != NULL)
+    {
+       memset(context, 0, sizeof(struct process_context_t));
+       uint32_t flags;
+       asm("pushf; "
+           "mov (%%esp), %0; "
+           "popf; "
+           : "=r"(flags));
+       context->cs = 0x1B;
+       context->eip = (uint32_t)task_entry;
+       context->flags = (flags & ~0xFD) | 0x200;
+       context->ss = 0x23;
+       context->esp = &_kernel_start;
+       context->ebp = &_kernel_start;
+    }
+    return (void*)context;
 }
 
 void destroy_context(void *ctx)
 {
-    // Nothing to do...
+    kfree(ctx);
+}
+
+void save_context(struct process_context_t *context)
+{
+    store_active_context(context, sizeof(*context));
 }

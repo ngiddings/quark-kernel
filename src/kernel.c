@@ -57,7 +57,7 @@ void kernel_initialize(struct boot_info_t *boot_info)
     asm("hlt");*/
 
     irq_enable();
-    load_context(next_process(NULL));
+    load_context(next_process());
 }
 
 int set_syscall(int id, int arg_count, int pid, void *func_ptr)
@@ -219,13 +219,8 @@ int add_process(void *program_entry, int priority, physaddr_t address_space)
     return new_process->resource_id;
 }
 
-struct process_context_t *next_process(struct process_context_t *prev_state)
+struct process_context_t *next_process()
 {  
-    if(prev_state != NULL)
-    {
-        kernel.active_process->state = prev_state;
-        queue_insert(&kernel.priority_queue, kernel.active_process, kernel.active_process->priority);
-    }
     kernel.active_process = extract_min(&kernel.priority_queue);
     if(kernel.active_process != NULL)
     {
@@ -252,6 +247,19 @@ int terminate_process(size_t process_id)
     destroy_context(process->state);
     kfree(process);
     return S_OK;
+}
+
+int store_active_context(struct process_context_t *context, size_t size)
+{
+    if(kernel.active_process != NULL && kernel.active_process->state != NULL)
+    {
+        memcpy(kernel.active_process->state, context, size);
+        return S_OK;
+    }
+    else
+    {
+        return S_DOESNT_EXIST;
+    }
 }
 
 /*
