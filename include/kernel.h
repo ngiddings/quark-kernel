@@ -84,10 +84,4 @@ int store_active_context(struct process_context_t *context, size_t size);
 
 struct process_context_t *get_active_context();
 
-/*
-int accept_message(size_t process_id, struct message_t *message);
-
-int send_message(size_t process_id, const struct message_t *message);
-*/
-
 void panic(const char *message) __attribute__ ((noreturn));

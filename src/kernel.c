@@ -266,57 +266,6 @@ int store_active_context(struct process_context_t *context, size_t size)
     }
 }
 
-/*
-int accept_message(size_t process_id, struct message_t *message)
-{
-    if(message == NULL)
-    {
-        return S_NULL_POINTER;
-    }
-    else if(kernel->resource_table->limit >= process_id)
-    {
-        return S_OUT_OF_BOUNDS;
-    }
-    else if(kernel->resource_table->array[process_id].type != RESOURCE_PROCESS)
-    {
-        return S_INVALID_ARGUMENT;
-    }
-    struct process_t *process = &kernel->resource_table->array[process_id].process;
-    process->state = PROCESS_WAITING;
-    process->message = message;
-    if(kernel->active_process == process)
-    {
-        kernel->active_process = NULL;
-    }
-    queue_remove(kernel->priority_queue, process);
-    return S_OK;
-}
-
-int send_message(size_t process_id, const struct message_t *message)
-{
-    if(kernel == NULL || message == NULL)
-    {
-        return S_NULL_POINTER;
-    }
-    else if(kernel->resource_table->limit >= process_id)
-    {
-        return S_OUT_OF_BOUNDS;
-    }
-    else if(kernel->resource_table->array[process_id].type != RESOURCE_PROCESS)
-    {
-        return S_INVALID_ARGUMENT;
-    }
-    struct process_t *process = &kernel->resource_table->array[process_id].process;
-    if(process->state != PROCESS_WAITING || process->message == NULL)
-    {
-        return S_BUSY;
-    }
-    queue_insert(kernel->priority_queue, kernel->active_process);
-    struct message_t buffer = *message;
-
-}
-*/
-
 void panic(const char *message)
 {
     printf("panic: %s", message);
