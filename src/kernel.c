@@ -221,6 +221,10 @@ int add_process(void *program_entry, int priority, physaddr_t address_space)
 
 struct process_context_t *next_process()
 {  
+    if(kernel.active_process != NULL)
+    {
+        queue_insert(&kernel.priority_queue, kernel.active_process, kernel.active_process->priority);
+    }
     kernel.active_process = extract_min(&kernel.priority_queue);
     if(kernel.active_process != NULL)
     {
