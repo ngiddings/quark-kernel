@@ -34,7 +34,7 @@ isr_preempt:
 
     // Save base pointer; it points to the interrupt stack frame
     mov %esp, %ebp
-    sub $4, %ebp
+    add $4, %ebp
 
     // Save EAX on stack so it can be used as a buffer
     push %eax
@@ -44,19 +44,19 @@ isr_preempt:
     push %eax
 
     // Load EIP, then push it onto stack
-    mov 16(%ebp), %eax
+    mov (%ebp), %eax
     push %eax
 
     // Load CS, then push it onto stack
-    mov 12(%ebp), %eax
-    push %eax
-
-    // Load ESP, then push it onto stack
     mov 4(%ebp), %eax
     push %eax
 
+    // Load ESP, then push it onto stack
+    mov 12(%ebp), %eax
+    push %eax
+
     // Load SS, then push it onto stack
-    mov (%ebp), %eax
+    mov 16(%ebp), %eax
     push %eax
 
     // Load EBP, then push it onto stack
