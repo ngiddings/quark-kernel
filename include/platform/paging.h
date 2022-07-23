@@ -13,7 +13,7 @@ enum page_flag_t
     PAGE_COPY_ON_WRITE = 1 << 18
 };
 
-const size_t page_table_levels;
+extern const size_t page_table_levels;
 
 /**
  * @brief 
