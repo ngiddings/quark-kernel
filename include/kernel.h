@@ -36,8 +36,9 @@ struct boot_info_t
 
 struct message_t
 {
-    uint16_t sender, type;
-    uint32_t param1, param2, param3;
+    unsigned long sender;
+    unsigned long code;
+    unsigned long args[6];
 };
 
 struct address_space_t
@@ -83,5 +84,7 @@ int terminate_process(size_t process_id);
 int store_active_context(struct process_context_t *context, size_t size);
 
 struct process_context_t *get_active_context();
+
+int send_message(int recipient, struct message_t *message);
 
 void panic(const char *message) __attribute__ ((noreturn));
