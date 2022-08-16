@@ -38,7 +38,7 @@ int construct_priority_queue(struct priority_queue_t *queue, int capacity)
     return S_OK;
 }
 
-void *extract_min(struct priority_queue_t *queue)
+void *priorityqueue_extract_min(struct priority_queue_t *queue)
 {
     if(queue->size == 0)
         return NULL;
@@ -49,7 +49,7 @@ void *extract_min(struct priority_queue_t *queue)
     return value;
 }
 
-int queue_insert(struct priority_queue_t *queue, void *value, int priority)
+int priorityqueue_insert(struct priority_queue_t *queue, void *value, int priority)
 {
     if(queue->size == queue->capacity)
         return S_OUT_OF_MEMORY;
@@ -65,7 +65,7 @@ int queue_insert(struct priority_queue_t *queue, void *value, int priority)
     return S_OK;
 }
 
-int queue_remove(struct priority_queue_t *queue, void *value)
+int priorityqueue_remove(struct priority_queue_t *queue, void *value)
 {
     for(size_t i = 0; i < queue->size; i++)
     {

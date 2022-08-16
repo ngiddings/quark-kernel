@@ -85,6 +85,14 @@ int store_active_context(struct process_context_t *context, size_t size);
 
 struct process_context_t *get_active_context();
 
+int open_port(int id);
+
+int close_port(int id);
+
 int send_message(int recipient, struct message_t *message);
+
+int receive_message(struct message_t *buffer);
+
+int request_message(struct message_t *buffer, void *temp);
 
 void panic(const char *message) __attribute__ ((noreturn));

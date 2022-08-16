@@ -70,7 +70,7 @@ int construct_priority_queue(struct priority_queue_t *queue, int capacity);
  * @param queue 
  * @return void* 
  */
-void *extract_min(struct priority_queue_t *queue);
+void *priorityqueue_extract_min(struct priority_queue_t *queue);
 
 /**
  * @brief Inserts a new object onto the queue.
@@ -80,7 +80,7 @@ void *extract_min(struct priority_queue_t *queue);
  * @param priority
  * @return int 
  */
-int queue_insert(struct priority_queue_t *queue, void *value, int priority);
+int priorityqueue_insert(struct priority_queue_t *queue, void *value, int priority);
 
 /**
  * @brief Removes the object with a matching value from the queue.
@@ -89,4 +89,4 @@ int queue_insert(struct priority_queue_t *queue, void *value, int priority);
  * @param value 
  * @return int 
  */
-int queue_remove(struct priority_queue_t *queue, void *value);
+int priorityqueue_remove(struct priority_queue_t *queue, void *value);

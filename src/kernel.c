@@ -214,7 +214,7 @@ int add_process(void *program_entry, int priority, physaddr_t address_space)
     new_process->page_table = address_space;
     new_process->state = initial_context;
     kernel.process_table = avl_insert(kernel.process_table, new_process->resource_id, new_process);
-    queue_insert(&kernel.priority_queue, new_process, new_process->priority);
+    priorityqueue_insert(&kernel.priority_queue, new_process, new_process->priority);
     kernel.next_pid++;
     return new_process->resource_id;
 }
@@ -223,9 +223,9 @@ struct process_context_t *next_process()
 {  
     if(kernel.active_process != NULL)
     {
-        queue_insert(&kernel.priority_queue, kernel.active_process, kernel.active_process->priority);
+        priorityqueue_insert(&kernel.priority_queue, kernel.active_process, kernel.active_process->priority);
     }
-    kernel.active_process = extract_min(&kernel.priority_queue);
+    kernel.active_process = priorityqueue_extract_min(&kernel.priority_queue);
     if(kernel.active_process != NULL)
     {
         paging_load_address_space(kernel.active_process->page_table);
@@ -247,7 +247,7 @@ int terminate_process(size_t process_id)
         kernel.active_process = NULL;
     }
     kernel.process_table = avl_remove(kernel.process_table, process_id);
-    queue_remove(&kernel.priority_queue, process);
+    priorityqueue_remove(&kernel.priority_queue, process);
     destroy_context(process->state);
     kfree(process);
     return S_OK;
