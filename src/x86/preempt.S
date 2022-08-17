@@ -4,6 +4,13 @@
 .type isr_syscall, @function
 isr_syscall:
     cli
+    mov %esp, %ebp
+    mov 8(%ebp), %esi
+    push %esi
+    mov 12(%ebp), %esi
+    push %esi
+    mov (%ebp), %esi
+    push %esi
     push %edx
     push %ecx
     push %ebx
@@ -14,7 +21,7 @@ isr_syscall:
     mov %ax, %fs
     mov %ax, %gs
     call do_syscall
-    add $0x10, %esp
+    mov %ebp, %esp
     mov $0x23, %cx
     mov %cx, %ds
     mov %cx, %es

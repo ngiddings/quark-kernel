@@ -9,7 +9,8 @@
 
 struct heap_t
 {
-    struct heap_node_t *base;
+    void *base;
+    struct heap_node_t *header;
     size_t heap_size;
     size_t block_size;
     size_t tree_height;
@@ -47,7 +48,7 @@ size_t find_free_block(struct heap_t *heap, size_t height)
     }
     for(size_t index = 1 << (heap->tree_height - height); index < 1 << (heap->tree_height - height + 1); index++)
     {
-        if(heap->base[index].state == AVAIL)
+        if(heap->header[index].state == AVAIL)
         {
             return index;
         }
@@ -55,9 +56,9 @@ size_t find_free_block(struct heap_t *heap, size_t height)
     size_t index = find_free_block(heap, height + 1);
     if(index)
     {
-        heap->base[index].state = UNAVAIL;
-        heap->base[index << 1].state = AVAIL;
-        heap->base[(index << 1) ^ 1].state = AVAIL;
+        heap->header[index].state = UNAVAIL;
+        heap->header[index << 1].state = AVAIL;
+        heap->header[(index << 1) ^ 1].state = AVAIL;
     }
     return index << 1;
 }
@@ -65,7 +66,7 @@ size_t find_free_block(struct heap_t *heap, size_t height)
 int map_region(struct heap_t *heap, size_t height, size_t index)
 {
     int status = 0;
-    if(heap->base[index].mapped == 0)
+    if(heap->header[index].mapped == 0)
     {
         if(height > 0)
         {
@@ -83,48 +84,49 @@ int map_region(struct heap_t *heap, size_t height, size_t index)
                 status = map_page(ptr, reserve_page(), PAGE_RW);
             }
         }
-        heap->base[index].mapped = 1;
+        heap->header[index].mapped = 1;
     }
     return status;
 }
 
-int heap_contruct(struct heap_t *heap, void *base, size_t heap_size, size_t block_size)
+int heap_contruct(struct heap_t *heap, void *base, void *start, size_t heap_size, size_t block_size)
 {
-    heap->base = (struct heap_node_t*) base;
+    heap->base = base;
+    heap->header = (struct heap_node_t*) start;
     heap->heap_size = heap_size;
     heap->block_size = block_size;
     heap->tree_height = ilog2(heap_size / block_size);
     size_t header_size = (heap_size / block_size) << 1;
-    for(size_t i = 1; i < (heap_size / block_size) * 2; i++)
+    for(size_t i = 1; i <= (heap_size / block_size) * 2; i++)
     {
-        int flags = page_type((void*) heap->base + i);
+        int flags = page_type((void*) heap->header + i);
         if((flags & PAGE_PRESENT) == 0)
         {
-            int status = map_page((void*)heap->base + i, reserve_page(), PAGE_RW);
+            int status = map_page((void*)heap->header + i, reserve_page(), PAGE_RW);
             if(status != S_OK)
             {
                 return status;
             }
         }
-        heap->base[i].state = UNAVAIL;
-        heap->base[i].mapped = 0;
+        heap->header[i].state = UNAVAIL;
+        heap->header[i].mapped = 0;
     }
     for(size_t i = 0; i < heap_size / block_size; i++)
     {
-        if(block_size * i >= header_size)
+        if(block_size * i >= header_size + (start - base))
         {
             size_t index = i + (1 << heap->tree_height);
-            heap->base[index].state = AVAIL;
-            for(; index > 1 && heap->base[index ^ 1].state == 0; index >>= 1)
+            heap->header[index].state = AVAIL;
+            for(; index > 1 && heap->header[index ^ 1].state == 0; index >>= 1)
             {
-                heap->base[index].state = UNAVAIL;
-                heap->base[index ^ 1].state = UNAVAIL;
-                heap->base[index >> 1].state = AVAIL;
+                heap->header[index].state = UNAVAIL;
+                heap->header[index ^ 1].state = UNAVAIL;
+                heap->header[index >> 1].state = AVAIL;
             }
         }
         else
         {
-            heap->base[i + (1 << heap->tree_height)].state = UNAVAIL;
+            heap->header[i + (1 << heap->tree_height)].state = UNAVAIL;
         }
     }
     return S_OK;
@@ -138,7 +140,7 @@ void *heap_allocate(struct heap_t *heap, size_t size)
     size_t index = find_free_block(heap, height);
     if(index)
     {
-        heap->base[index].state = ALLOCATED;
+        heap->header[index].state = ALLOCATED;
         void *ptr = (void*) ((size_t) heap->base + (heap->block_size << height) * (index - (1 << (heap->tree_height - height))));
         map_region(heap, height, index);
         return ptr;
@@ -150,19 +152,19 @@ void heap_free(struct heap_t *heap, void *ptr)
 {
     size_t offset = (size_t) ptr - (size_t) heap->base;
     size_t index = (offset / heap->block_size) + (1 << heap->tree_height);
-    for(; index > 0 && heap->base[index].state == UNAVAIL; index >>= 1);
-    heap->base[index].state = AVAIL;
-    for(; index > 1 && heap->base[index ^ 1].state == AVAIL; index >>= 1)
+    for(; index > 0 && heap->header[index].state == UNAVAIL; index >>= 1);
+    heap->header[index].state = AVAIL;
+    for(; index > 1 && heap->header[index ^ 1].state == AVAIL; index >>= 1)
     {
-        heap->base[index].state = UNAVAIL;
-        heap->base[index ^ 1].state = UNAVAIL;
-        heap->base[index >> 1].state = AVAIL;
+        heap->header[index].state = UNAVAIL;
+        heap->header[index ^ 1].state = UNAVAIL;
+        heap->header[index >> 1].state = AVAIL;
     }
 }
 
-int kminit(void *base, size_t heap_size, size_t block_size)
+int kminit(void *base, void* start, size_t heap_size, size_t block_size)
 {
-    return heap_contruct(&system_heap, base, heap_size, block_size);
+    return heap_contruct(&system_heap, base, start, heap_size, block_size);
 }
 
 void *kmalloc(size_t size)

@@ -3,6 +3,7 @@
 #include "avltree.h"
 #include "memmap.h"
 #include "priorityqueue.h"
+#include "queue.h"
 #include "mmgr.h"
 #include "syscalls.h"
 #include <stddef.h>
@@ -10,11 +11,14 @@
 #define MAX_SYSCALL_ID 256
 #define module_limit 8
 
-enum process_state_t
-{
-    PROCESS_ACTIVE,
-    PROCESS_WAITING
-};
+#define IO_OP 1 << 0
+#define IO_SYNC 0 << 0
+#define IO_ASYNC 1 << 0
+
+#define IO_RECIPIENT_TYPE 3 << 1
+#define IO_PID 0 << 1
+#define IO_PORT 1 << 1
+#define IO_MAILBOX 2 << 1
 
 struct process_context_t;
 
@@ -41,25 +45,36 @@ struct message_t
     unsigned long args[6];
 };
 
-struct address_space_t
+enum process_state_t
 {
-    physaddr_t top_table;
-    int counter;
+    PROCESS_ACTIVE,
+    PROCESS_REQUESTING,
+    PROCESS_SENDING
 };
 
 struct process_t
 {
-    size_t priority;
-    size_t resource_id;
+    unsigned long pid;
+    int priority;
     physaddr_t page_table;
-    struct process_context_t *state;
-    struct message_t *message;
+    enum process_state_t state;
+    struct queue_t sending_queue;
+    struct queue_t message_queue;
+    struct message_t *message_buffer;
+    struct process_context_t *ctx;
+};
+
+struct port_t
+{
+    unsigned long id;
+    unsigned long owner_pid;
 };
 
 struct kernel_t
 {
     struct syscall_t syscall_table[MAX_SYSCALL_ID];
     struct priority_queue_t priority_queue;
+    struct avltree_t *port_table;
     struct avltree_t *process_table;
     struct process_t *active_process;
     int next_pid;
@@ -69,7 +84,7 @@ void kernel_initialize(struct boot_info_t *boot_info);
 
 int set_syscall(int id, int arg_count, int pid, void *func_ptr);
 
-size_t do_syscall(enum syscall_id_t id, syscall_arg_t arg1, syscall_arg_t arg2, syscall_arg_t arg3);
+size_t do_syscall(enum syscall_id_t id, syscall_arg_t arg1, syscall_arg_t arg2, syscall_arg_t arg3, void *pc, void *stack, unsigned long flags);
 
 int load_module(struct module_t *module);
 
@@ -85,14 +100,12 @@ int store_active_context(struct process_context_t *context, size_t size);
 
 struct process_context_t *get_active_context();
 
-int open_port(int id);
+int open_port(unsigned long id);
 
-int close_port(int id);
+int close_port(unsigned long id);
 
-int send_message(int recipient, struct message_t *message);
+int send_message(int recipient, struct message_t *message, int flags);
 
-int receive_message(struct message_t *buffer);
-
-int request_message(struct message_t *buffer, void *temp);
+int receive_message(struct message_t *buffer, int flags);
 
 void panic(const char *message) __attribute__ ((noreturn));
