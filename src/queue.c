@@ -16,6 +16,13 @@ struct queue_node_t
     struct queue_node_t *next;
 };
 
+void queue_construct(struct queue_t *queue)
+{
+    queue->first = NULL;
+    queue->last = NULL;
+    queue->count = 0;
+}
+
 void queue_insert(struct queue_t *queue, void *ptr)
 {
     struct queue_node_t *node = kmalloc(sizeof(struct queue_node_t));

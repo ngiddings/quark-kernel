@@ -28,6 +28,13 @@ struct queue_t
 };
 
 /**
+ * @brief Initializes a queue structure.
+ * 
+ * @param queue 
+ */
+void queue_construct(struct queue_t *queue);
+
+/**
  * @brief Inserts a new item at the end of the queue.
  * 
  * @param queue 
