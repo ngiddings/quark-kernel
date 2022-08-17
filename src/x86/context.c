@@ -43,3 +43,23 @@ void save_context(struct process_context_t *context)
 {
     store_active_context(context, sizeof(*context));
 }
+
+void set_context_pc(struct process_context_t *context, void *pc)
+{
+    context->eip = pc;
+}
+
+void set_context_stack(struct process_context_t *context, void *stack)
+{
+    context->esp = stack;
+}
+
+void set_context_flags(struct process_context_t *context, unsigned long flags)
+{
+    context->flags = flags;
+}
+
+void set_context_return(struct process_context_t *context, unsigned long value)
+{
+    context->eax = value;
+}
