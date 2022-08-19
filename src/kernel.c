@@ -11,6 +11,7 @@
 #include "platform/context.h"
 #include "platform/putc.h"
 #include "types/status.h"
+#include "types/syscallid.h"
 
 struct kernel_t kernel;
 

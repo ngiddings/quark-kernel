@@ -6,6 +6,7 @@
 #include "queue.h"
 #include "mmgr.h"
 #include "syscalls.h"
+#include "types/syscallid.h"
 #include <stddef.h>
 
 #define MAX_SYSCALL_ID 256
