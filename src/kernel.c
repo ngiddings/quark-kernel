@@ -39,6 +39,10 @@ void kernel_initialize(struct boot_info_t *boot_info)
     set_syscall(SYSCALL_TEST, 1, 0, test_syscall);
     set_syscall(SYSCALL_MMAP, 3, 0, mmap);
     set_syscall(SYSCALL_MUNMAP, 2, 0, munmap);
+    set_syscall(SYSCALL_SEND, 3, 0, send);
+    set_syscall(SYSCALL_RECEIVE, 2, 0, receive);
+    set_syscall(SYSCALL_OPEN_PORT, 1, 0, openport);
+    set_syscall(SYSCALL_CLOSE_PORT, 1, 0, closeport);
     for(int i = 0; i < boot_info->module_count; i++)
     {
         if(load_module(&boot_info->modules[i]) != S_OK)
@@ -232,7 +236,7 @@ struct process_context_t *next_process()
     if(kernel.active_process != NULL)
     {
         paging_load_address_space(kernel.active_process->page_table);
-        printf("entering process %08x cr3=%08x ctx=%08x.\n", kernel.active_process, kernel.active_process->page_table, kernel.active_process->ctx);
+        printf("entering process %08x cr3=%08x ctx=%08x.\n", kernel.active_process->pid, kernel.active_process->page_table, kernel.active_process->ctx);
         return kernel.active_process->ctx;
     }
     panic("no processes available to enter!");
@@ -275,10 +279,11 @@ int open_port(unsigned long id)
     {
         return S_EXISTS;
     }
+    printf("opening port %i -> %i\n", id, kernel.active_process->pid);
     struct port_t *port = kmalloc(sizeof(struct port_t));
     port->id = id;
     port->owner_pid = kernel.active_process->pid;
-    avl_insert(kernel.port_table, id, port);
+    kernel.port_table = avl_insert(kernel.port_table, id, port);
     return S_OK;
 }
 
@@ -293,7 +298,8 @@ int close_port(unsigned long id)
     {
         return S_INVALID_ARGUMENT;
     }
-    avl_remove(kernel.port_table, id);
+    printf("closing port %i attached to %i\n", id, kernel.active_process->pid);
+    kernel.port_table = avl_remove(kernel.port_table, id);
     kfree(port);
     return S_OK;
 }
@@ -304,6 +310,7 @@ int send_message(int recipient, struct message_t *message, int flags)
     int dest_type = flags & IO_RECIPIENT_TYPE;
     if((flags & ~(IO_OP | IO_RECIPIENT_TYPE)) != 0 || dest_type >= IO_MAILBOX)
     {
+        printf("Invalid flags on send_message\n");
         return S_INVALID_ARGUMENT;
     }
     if(dest_type == IO_PORT)
@@ -315,6 +322,7 @@ int send_message(int recipient, struct message_t *message, int flags)
         }
         else
         {
+            printf("Port %i does not exist\n", recipient);
             return S_DOESNT_EXIST;
         }
     }
@@ -325,6 +333,7 @@ int send_message(int recipient, struct message_t *message, int flags)
     }
     else if(dest->message_buffer != NULL)
     {
+        printf("Sending message directly from %i to %i\n", kernel.active_process->pid, dest->pid);
         struct message_t kernel_buffer;
         memcpy(&kernel_buffer, message, sizeof(struct message_t));
         kernel_buffer.sender = kernel.active_process->pid;
@@ -339,6 +348,7 @@ int send_message(int recipient, struct message_t *message, int flags)
     }
     else if(op_type == IO_ASYNC)
     {
+        printf("Queueing message from %i to %i\n", kernel.active_process->pid, dest->pid);
         struct message_t *queued_msg = kmalloc(sizeof(struct message_t));
         if(queued_msg == NULL)
         {
@@ -350,6 +360,7 @@ int send_message(int recipient, struct message_t *message, int flags)
     }
     else
     {
+        printf("Queueing process %i to %i\n", kernel.active_process->pid, dest->pid);
         queue_insert(&dest->sending_queue, kernel.active_process);
         kernel.active_process->state = PROCESS_SENDING;
         kernel.active_process = NULL;

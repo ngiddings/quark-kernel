@@ -91,3 +91,23 @@ size_t terminate_self()
 {
     return terminate_process(active_process());
 }
+
+size_t send(syscall_arg_t recipient, syscall_arg_t message, syscall_arg_t flags)
+{
+    return send_message(recipient.unsigned_int, message.ptr, flags.unsigned_int);
+}
+
+size_t receive(syscall_arg_t buffer, syscall_arg_t flags)
+{
+    return receive_message(buffer.ptr, flags.unsigned_int);
+}
+
+size_t openport(syscall_arg_t id)
+{
+    return open_port(id.unsigned_int);
+}
+
+size_t closeport(syscall_arg_t id)
+{
+    return close_port(id.unsigned_int);
+}
