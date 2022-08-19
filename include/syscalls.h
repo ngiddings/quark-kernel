@@ -9,7 +9,11 @@ enum syscall_id_t
     SYSCALL_YIELD,
     SYSCALL_MMAP,
     SYSCALL_MUNMAP,
-    SYSCALL_TERMINATE_SELF
+    SYSCALL_TERMINATE_SELF,
+    SYSCALL_SEND,
+    SYSCALL_RECEIVE,
+    SYSCALL_OPEN_PORT,
+    SYSCALL_CLOSE_PORT
 };
 
 typedef union
@@ -48,3 +52,11 @@ size_t mmap(syscall_arg_t location, syscall_arg_t length, syscall_arg_t flags);
 size_t munmap(syscall_arg_t location, syscall_arg_t length);
 
 size_t terminate_self();
+
+size_t send(syscall_arg_t recipient, syscall_arg_t message, syscall_arg_t flags);
+
+size_t receive(syscall_arg_t buffer, syscall_arg_t flags);
+
+size_t openport(syscall_arg_t id);
+
+size_t closeport(syscall_arg_t id);

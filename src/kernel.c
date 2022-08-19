@@ -18,7 +18,7 @@ void kernel_initialize(struct boot_info_t *boot_info)
 {
     insert_region(&boot_info->map, (physaddr_t)&_kernel_pstart, (physaddr_t)&_kernel_pend - (physaddr_t)&_kernel_pstart, M_UNAVAILABLE);
     initialize_page_stack(&boot_info->map, (physaddr_t*)&_kernel_end);
-    kminit(page_stack_top(), 0xFFC00000 - (size_t)page_stack_top(), page_size);
+    kminit(&_kernel_start, page_stack_top(), 0xFFC00000 - (size_t)&_kernel_start, 64);
     initialize_screen();
     printf("***%s***\n", PACKAGE_STRING);
     printf("Type\t\tLocation\t\tSize\n");
@@ -30,6 +30,7 @@ void kernel_initialize(struct boot_info_t *boot_info)
     kernel.active_process = NULL;
     kernel.next_pid = 1;
     kernel.process_table = NULL;
+    kernel.port_table = NULL;
     if(construct_priority_queue(&kernel.priority_queue, 512) != S_OK)
     {
         panic("Failed to construct priority queue.");
@@ -38,6 +39,10 @@ void kernel_initialize(struct boot_info_t *boot_info)
     set_syscall(SYSCALL_TEST, 1, 0, test_syscall);
     set_syscall(SYSCALL_MMAP, 3, 0, mmap);
     set_syscall(SYSCALL_MUNMAP, 2, 0, munmap);
+    set_syscall(SYSCALL_SEND, 3, 0, send);
+    set_syscall(SYSCALL_RECEIVE, 2, 0, receive);
+    set_syscall(SYSCALL_OPEN_PORT, 1, 0, openport);
+    set_syscall(SYSCALL_CLOSE_PORT, 1, 0, closeport);
     for(int i = 0; i < boot_info->module_count; i++)
     {
         if(load_module(&boot_info->modules[i]) != S_OK)
@@ -51,13 +56,8 @@ void kernel_initialize(struct boot_info_t *boot_info)
         panic("Failed to initialize interrupts.");
     }
 
-    /*asm("mov $281, %ax;"
-        "mov %ax, %ds");
-
-    asm("hlt");*/
-
     irq_enable();
-    load_context(next_process(NULL));
+    load_context(next_process());
 }
 
 int set_syscall(int id, int arg_count, int pid, void *func_ptr)
@@ -89,7 +89,7 @@ int set_syscall(int id, int arg_count, int pid, void *func_ptr)
     return S_OK;
 }
 
-size_t do_syscall(enum syscall_id_t id, syscall_arg_t arg1, syscall_arg_t arg2, syscall_arg_t arg3)
+size_t do_syscall(enum syscall_id_t id, syscall_arg_t arg1, syscall_arg_t arg2, syscall_arg_t arg3, void *pc, void *stack, unsigned long flags)
 {
     if(id < 0 || id > MAX_SYSCALL_ID)
     {
@@ -111,6 +111,9 @@ size_t do_syscall(enum syscall_id_t id, syscall_arg_t arg1, syscall_arg_t arg2, 
         paging_load_address_space(callee->page_table);
         switched_address_space = true;
     }
+    set_context_pc(kernel.active_process->ctx, pc);
+    set_context_stack(kernel.active_process->ctx, stack);
+    set_context_flags(kernel.active_process->ctx, flags);
     size_t result;
     switch(kernel.syscall_table[id].arg_count)
     {
@@ -197,7 +200,7 @@ int active_process()
     }
     else
     {
-        return kernel.active_process->resource_id;
+        return kernel.active_process->pid;
     }
 }
 
@@ -210,28 +213,31 @@ int add_process(void *program_entry, int priority, physaddr_t address_space)
     }
     struct process_context_t *initial_context = initialize_context(program_entry);
     new_process->priority = priority;
-    new_process->resource_id = kernel.next_pid;
+    new_process->pid = kernel.next_pid;
     new_process->page_table = address_space;
-    new_process->state = initial_context;
-    kernel.process_table = avl_insert(kernel.process_table, new_process->resource_id, new_process);
-    queue_insert(&kernel.priority_queue, new_process, new_process->priority);
+    new_process->state = PROCESS_ACTIVE;
+    new_process->message_buffer = NULL;
+    new_process->ctx = initial_context;
+    queue_construct(&new_process->sending_queue);
+    queue_construct(&new_process->message_queue);
+    kernel.process_table = avl_insert(kernel.process_table, new_process->pid, new_process);
+    priorityqueue_insert(&kernel.priority_queue, new_process, new_process->priority);
     kernel.next_pid++;
-    return new_process->resource_id;
+    return new_process->pid;
 }
 
-struct process_context_t *next_process(struct process_context_t *prev_state)
+struct process_context_t *next_process()
 {  
-    if(prev_state != NULL)
+    if(kernel.active_process != NULL)
     {
-        kernel.active_process->state = prev_state;
-        queue_insert(&kernel.priority_queue, kernel.active_process, kernel.active_process->priority);
+        priorityqueue_insert(&kernel.priority_queue, kernel.active_process, kernel.active_process->priority);
     }
-    kernel.active_process = extract_min(&kernel.priority_queue);
+    kernel.active_process = priorityqueue_extract_min(&kernel.priority_queue);
     if(kernel.active_process != NULL)
     {
         paging_load_address_space(kernel.active_process->page_table);
-        printf("entering process %08x cr3=%08x state=%08x.\n", kernel.active_process, kernel.active_process->page_table, kernel.active_process->state);
-        return kernel.active_process->state;
+        printf("entering process %08x cr3=%08x ctx=%08x.\n", kernel.active_process->pid, kernel.active_process->page_table, kernel.active_process->ctx);
+        return kernel.active_process->ctx;
     }
     panic("no processes available to enter!");
 }
@@ -248,62 +254,155 @@ int terminate_process(size_t process_id)
         kernel.active_process = NULL;
     }
     kernel.process_table = avl_remove(kernel.process_table, process_id);
-    queue_remove(&kernel.priority_queue, process);
-    destroy_context(process->state);
+    priorityqueue_remove(&kernel.priority_queue, process);
+    destroy_context(process->ctx);
     kfree(process);
     return S_OK;
 }
 
-/*
-int accept_message(size_t process_id, struct message_t *message)
+int store_active_context(struct process_context_t *context, size_t size)
 {
-    if(message == NULL)
+    if(kernel.active_process != NULL && kernel.active_process->ctx != NULL)
     {
-        return S_NULL_POINTER;
+        memcpy(kernel.active_process->ctx, context, size);
+        return S_OK;
     }
-    else if(kernel->resource_table->limit >= process_id)
+    else
     {
-        return S_OUT_OF_BOUNDS;
+        return S_DOESNT_EXIST;
     }
-    else if(kernel->resource_table->array[process_id].type != RESOURCE_PROCESS)
+}
+
+int open_port(unsigned long id)
+{
+    if(avl_get(kernel.port_table, id) != NULL)
     {
-        return S_INVALID_ARGUMENT;
+        return S_EXISTS;
     }
-    struct process_t *process = &kernel->resource_table->array[process_id].process;
-    process->state = PROCESS_WAITING;
-    process->message = message;
-    if(kernel->active_process == process)
-    {
-        kernel->active_process = NULL;
-    }
-    queue_remove(kernel->priority_queue, process);
+    printf("opening port %i -> %i\n", id, kernel.active_process->pid);
+    struct port_t *port = kmalloc(sizeof(struct port_t));
+    port->id = id;
+    port->owner_pid = kernel.active_process->pid;
+    kernel.port_table = avl_insert(kernel.port_table, id, port);
     return S_OK;
 }
 
-int send_message(size_t process_id, const struct message_t *message)
+int close_port(unsigned long id)
 {
-    if(kernel == NULL || message == NULL)
+    struct port_t *port = avl_get(kernel.port_table, id);
+    if(port == NULL)
     {
-        return S_NULL_POINTER;
+        return S_DOESNT_EXIST;
     }
-    else if(kernel->resource_table->limit >= process_id)
-    {
-        return S_OUT_OF_BOUNDS;
-    }
-    else if(kernel->resource_table->array[process_id].type != RESOURCE_PROCESS)
+    else if(port->owner_pid != kernel.active_process->pid)
     {
         return S_INVALID_ARGUMENT;
     }
-    struct process_t *process = &kernel->resource_table->array[process_id].process;
-    if(process->state != PROCESS_WAITING || process->message == NULL)
-    {
-        return S_BUSY;
-    }
-    queue_insert(kernel->priority_queue, kernel->active_process);
-    struct message_t buffer = *message;
-
+    printf("closing port %i attached to %i\n", id, kernel.active_process->pid);
+    kernel.port_table = avl_remove(kernel.port_table, id);
+    kfree(port);
+    return S_OK;
 }
-*/
+
+int send_message(int recipient, struct message_t *message, int flags)
+{
+    int op_type = flags & IO_OP;
+    int dest_type = flags & IO_RECIPIENT_TYPE;
+    if((flags & ~(IO_OP | IO_RECIPIENT_TYPE)) != 0 || dest_type >= IO_MAILBOX)
+    {
+        printf("Invalid flags on send_message\n");
+        return S_INVALID_ARGUMENT;
+    }
+    if(dest_type == IO_PORT)
+    {
+        struct port_t *port = avl_get(kernel.port_table, recipient);
+        if(port != NULL)
+        {
+            recipient = port->owner_pid;
+        }
+        else
+        {
+            printf("Port %i does not exist\n", recipient);
+            return S_DOESNT_EXIST;
+        }
+    }
+    struct process_t *dest = avl_get(kernel.process_table, recipient);
+    if(dest == NULL)
+    {
+        return S_DOESNT_EXIST;
+    }
+    else if(dest->message_buffer != NULL)
+    {
+        printf("Sending message directly from %i to %i\n", kernel.active_process->pid, dest->pid);
+        struct message_t kernel_buffer;
+        memcpy(&kernel_buffer, message, sizeof(struct message_t));
+        kernel_buffer.sender = kernel.active_process->pid;
+        paging_load_address_space(dest->page_table);
+        memcpy(dest->message_buffer, &kernel_buffer, sizeof(struct message_t));
+        paging_load_address_space(kernel.active_process->page_table);
+        dest->message_buffer = NULL;
+        dest->state = PROCESS_ACTIVE;
+        set_context_return(dest->ctx, S_OK);
+        priorityqueue_insert(&kernel.priority_queue, dest, dest->priority);
+        return S_OK;
+    }
+    else if(op_type == IO_ASYNC)
+    {
+        printf("Queueing message from %i to %i\n", kernel.active_process->pid, dest->pid);
+        struct message_t *queued_msg = kmalloc(sizeof(struct message_t));
+        if(queued_msg == NULL)
+        {
+            return S_OUT_OF_MEMORY;
+        }
+        memcpy(queued_msg, message, sizeof(struct message_t));
+        queue_insert(&dest->message_queue, queued_msg);
+        return S_OK;
+    }
+    else
+    {
+        printf("Queueing process %i to %i\n", kernel.active_process->pid, dest->pid);
+        queue_insert(&dest->sending_queue, kernel.active_process);
+        kernel.active_process->state = PROCESS_SENDING;
+        kernel.active_process = NULL;
+        load_context(next_process());
+    }
+}
+
+int receive_message(struct message_t *buffer, int flags)
+{
+    if(kernel.active_process->sending_queue.count > 0)
+    {
+        struct message_t kernel_buffer;
+        struct process_t *sender = queue_get_next(&kernel.active_process->sending_queue);
+        paging_load_address_space(sender->page_table);
+        memcpy(&kernel_buffer, &sender->message_buffer, sizeof(struct message_t));
+        kernel_buffer.sender = sender->pid;
+        paging_load_address_space(kernel.active_process->page_table);
+        memcpy(buffer, &kernel_buffer, sizeof(struct message_t));
+        sender->state = PROCESS_ACTIVE;
+        set_context_return(sender->ctx, S_OK);
+        priorityqueue_insert(&kernel.priority_queue, sender, sender->priority);
+        return S_OK;
+    }
+    else if(kernel.active_process->message_queue.count > 0)
+    {
+        struct message_t *queued_msg = queue_get_next(&kernel.active_process->message_queue);
+        memcpy(buffer, queued_msg, sizeof(struct message_t));
+        kfree(queued_msg);
+        return S_OK;
+    }
+    else if((flags & IO_OP) == IO_ASYNC)
+    {
+        return S_DOESNT_EXIST;
+    }
+    else
+    {
+        kernel.active_process->message_buffer = buffer;
+        kernel.active_process->state = PROCESS_REQUESTING;
+        kernel.active_process = NULL;
+        load_context(next_process());
+    }
+}
 
 void panic(const char *message)
 {

@@ -3,6 +3,7 @@
 #include "avltree.h"
 #include "memmap.h"
 #include "priorityqueue.h"
+#include "queue.h"
 #include "mmgr.h"
 #include "syscalls.h"
 #include <stddef.h>
@@ -10,11 +11,14 @@
 #define MAX_SYSCALL_ID 256
 #define module_limit 8
 
-enum process_state_t
-{
-    PROCESS_ACTIVE,
-    PROCESS_WAITING
-};
+#define IO_OP 1 << 0
+#define IO_SYNC 0 << 0
+#define IO_ASYNC 1 << 0
+
+#define IO_RECIPIENT_TYPE 3 << 1
+#define IO_PID 0 << 1
+#define IO_PORT 1 << 1
+#define IO_MAILBOX 2 << 1
 
 struct process_context_t;
 
@@ -36,23 +40,41 @@ struct boot_info_t
 
 struct message_t
 {
-    uint16_t sender, type;
-    uint32_t param1, param2, param3;
+    unsigned long sender;
+    unsigned long code;
+    unsigned long args[6];
+};
+
+enum process_state_t
+{
+    PROCESS_ACTIVE,
+    PROCESS_REQUESTING,
+    PROCESS_SENDING
 };
 
 struct process_t
 {
-    size_t priority;
-    size_t resource_id;
+    unsigned long pid;
+    int priority;
     physaddr_t page_table;
-    struct process_context_t *state;
-    struct message_t *message;
+    enum process_state_t state;
+    struct queue_t sending_queue;
+    struct queue_t message_queue;
+    struct message_t *message_buffer;
+    struct process_context_t *ctx;
+};
+
+struct port_t
+{
+    unsigned long id;
+    unsigned long owner_pid;
 };
 
 struct kernel_t
 {
     struct syscall_t syscall_table[MAX_SYSCALL_ID];
     struct priority_queue_t priority_queue;
+    struct avltree_t *port_table;
     struct avltree_t *process_table;
     struct process_t *active_process;
     int next_pid;
@@ -62,7 +84,7 @@ void kernel_initialize(struct boot_info_t *boot_info);
 
 int set_syscall(int id, int arg_count, int pid, void *func_ptr);
 
-size_t do_syscall(enum syscall_id_t id, syscall_arg_t arg1, syscall_arg_t arg2, syscall_arg_t arg3);
+size_t do_syscall(enum syscall_id_t id, syscall_arg_t arg1, syscall_arg_t arg2, syscall_arg_t arg3, void *pc, void *stack, unsigned long flags);
 
 int load_module(struct module_t *module);
 
@@ -70,14 +92,20 @@ int active_process();
 
 int add_process(void *program_entry, int priority, physaddr_t address_space);
 
-struct process_context_t *next_process(struct process_context_t *prev_state);
+struct process_context_t *next_process();
 
 int terminate_process(size_t process_id);
 
-/*
-int accept_message(size_t process_id, struct message_t *message);
+int store_active_context(struct process_context_t *context, size_t size);
 
-int send_message(size_t process_id, const struct message_t *message);
-*/
+struct process_context_t *get_active_context();
+
+int open_port(unsigned long id);
+
+int close_port(unsigned long id);
+
+int send_message(int recipient, struct message_t *message, int flags);
+
+int receive_message(struct message_t *buffer, int flags);
 
 void panic(const char *message) __attribute__ ((noreturn));

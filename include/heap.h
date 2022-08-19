@@ -1,6 +1,5 @@
 #pragma once
 
-#include "mmgr.h"
 #include <stddef.h>
 
 /**
@@ -15,7 +14,7 @@
  * @param block_size Size in bytes of a single unit of allocation
  * @return a status code
  */
-int kminit(void *base, size_t heap_size, size_t block_size);
+int kminit(void *base, void* start, size_t heap_size, size_t block_size);
 
 /**
  * @brief Allocates a block of memory containing at least `size` bytes.
