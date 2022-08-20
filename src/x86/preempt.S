@@ -87,7 +87,7 @@ isr_preempt:
     call save_context
     mov %ebp, %esp
 
-    call next_process
+    call kernel_advance_scheduler
 
     push %eax
     call load_context

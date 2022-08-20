@@ -41,7 +41,7 @@ void destroy_context(void *ctx)
 
 void save_context(struct process_context_t *context)
 {
-    store_active_context(context, sizeof(*context));
+    kernel_store_active_context(context, sizeof(*context));
 }
 
 void set_context_pc(struct process_context_t *context, void *pc)

@@ -54,15 +54,15 @@ int initialize_page_stack(struct memory_map_t *map, physaddr_t *stack_base)
         size_t location = (map->array[i].location + page_size - 1) & ~(page_size - 1);
         while(location + page_size <= map->array[i].location + map->array[i].size)
         {
-            if(free_page(location) != S_OK)
+            if(free_page(location) != ENONE)
             {
-                return S_OUT_OF_MEMORY;
+                return ENOMEM;
             }
             page_stack.total_pages++;
             location += page_size;
         }
     }
-    return S_OK;
+    return ENONE;
 }
 
 physaddr_t reserve_page()
@@ -74,7 +74,7 @@ physaddr_t reserve_page()
         *page_stack.stack_pointer = (physaddr_t) 0;
         return frame;
     }
-    return S_OUT_OF_MEMORY;
+    return ENOMEM;
 }
 
 int free_page(physaddr_t location)
@@ -83,21 +83,21 @@ int free_page(physaddr_t location)
     {
         *page_stack.stack_pointer = location;
         page_stack.stack_pointer++;
-        return S_OK;
+        return ENONE;
     }
     else
     {
         switch(map_page(page_stack.limit_pointer, location, PAGE_RW))
         {
-        case S_OUT_OF_MEMORY:
-            return S_OUT_OF_MEMORY;
-        case S_OUT_OF_BOUNDS:
-            return S_OUT_OF_BOUNDS;
-        case S_OK:
+        case ENOMEM:
+            return ENOMEM;
+        case EOUTOFBOUNDS:
+            return EOUTOFBOUNDS;
+        case ENONE:
             page_stack.limit_pointer += page_size / sizeof(*page_stack.limit_pointer);
-            return S_OK;
+            return ENONE;
         }
-        return S_OUT_OF_MEMORY;
+        return ENOMEM;
     }
 }
 
@@ -120,9 +120,9 @@ physaddr_t create_address_space()
 {
     physaddr_t table = reserve_page();
     int result;
-    if (table == S_OUT_OF_MEMORY)
+    if (table == ENOMEM)
     {
-        return S_OUT_OF_MEMORY;
+        return ENOMEM;
     }
     else if((result = paging_init_top_table(table)))
     {
@@ -143,7 +143,7 @@ int map_page(void *page, physaddr_t frame, int flags)
 {
     if (frame % page_size != 0)
     {
-        return S_INVALID_ARGUMENT;
+        return EINVALIDARG;
     }
     for(int level = 0; level < page_table_levels - 1; level++)
     {
@@ -151,16 +151,16 @@ int map_page(void *page, physaddr_t frame, int flags)
         if(present == 0)
         {
             physaddr_t new_table = reserve_page();
-            if(new_table == S_OUT_OF_MEMORY)
+            if(new_table == ENOMEM)
             {
-                return S_OUT_OF_MEMORY;
+                return ENOMEM;
             }
             set_pte(page, level, PAGE_PRESENT | PAGE_USERMODE | PAGE_RW, new_table);
             wipe_page_table(page, level + 1);
         }
     }
     set_pte(page, page_table_levels - 1, PAGE_PRESENT | flags, frame);
-    return S_OK;
+    return ENONE;
 }
 
 physaddr_t unmap_page(void *page)
@@ -168,7 +168,7 @@ physaddr_t unmap_page(void *page)
     for(int level = 0; level < page_table_levels; level++)
     {
         if((get_pte_type(page, level) & PAGE_PRESENT) == 0)
-            return S_OUT_OF_BOUNDS;
+            return EOUTOFBOUNDS;
     }
     physaddr_t frame = get_pte_address(page, page_table_levels - 1);
     set_pte(page, page_table_levels - 1, 0, 0);

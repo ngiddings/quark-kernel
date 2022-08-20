@@ -44,6 +44,6 @@ size_t send(syscall_arg_t recipient, syscall_arg_t message, syscall_arg_t flags)
 
 size_t receive(syscall_arg_t buffer, syscall_arg_t flags);
 
-size_t openport(syscall_arg_t id);
+size_t open_port(syscall_arg_t id);
 
-size_t closeport(syscall_arg_t id);
+size_t close_port(syscall_arg_t id);

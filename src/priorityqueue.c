@@ -31,11 +31,11 @@ int construct_priority_queue(struct priority_queue_t *queue, int capacity)
     queue->heap = kmalloc(sizeof(struct priority_queue_node_t) * capacity);
     if(queue->heap == NULL)
     {
-        return S_OUT_OF_MEMORY;
+        return ENOMEM;
     }
     queue->capacity = capacity;
     queue->size = 0;
-    return S_OK;
+    return ENONE;
 }
 
 void *priorityqueue_extract_min(struct priority_queue_t *queue)
@@ -52,7 +52,7 @@ void *priorityqueue_extract_min(struct priority_queue_t *queue)
 int priorityqueue_insert(struct priority_queue_t *queue, void *value, int priority)
 {
     if(queue->size == queue->capacity)
-        return S_OUT_OF_MEMORY;
+        return ENOMEM;
     size_t i = queue->size;
     queue->size++;
     while(i > 0 && queue->heap[(i - 1) / 2].priority > priority)
@@ -62,7 +62,7 @@ int priorityqueue_insert(struct priority_queue_t *queue, void *value, int priori
     }
     queue->heap[i].priority = priority;
     queue->heap[i].value = value;
-    return S_OK;
+    return ENONE;
 }
 
 int priorityqueue_remove(struct priority_queue_t *queue, void *value)
@@ -74,8 +74,8 @@ int priorityqueue_remove(struct priority_queue_t *queue, void *value)
             queue->size--;
             queue->heap[i] = queue->heap[queue->size];
             heapify(queue, i);
-            return S_OK;
+            return ENONE;
         }
     }
-    return S_OUT_OF_BOUNDS;
+    return EOUTOFBOUNDS;
 }

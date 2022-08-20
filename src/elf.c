@@ -17,18 +17,18 @@ int load_program(struct elf_file_header_t *elf)
             for(size_t n = 0; n < program_header->memsize; n += page_size)
             {
                 physaddr_t page = reserve_page();
-                if(page == S_OUT_OF_MEMORY)
+                if(page == ENOMEM)
                 {
-                    return S_OUT_OF_MEMORY;
+                    return ENOMEM;
                 }
                 int status = map_page(d + n, page, PAGE_RW | PAGE_USERMODE | PAGE_EXECUTABLE);
                 switch(status)
                 {
-                case S_OUT_OF_MEMORY:
+                case ENOMEM:
                     return status;
-                case S_OUT_OF_BOUNDS:
+                case EOUTOFBOUNDS:
                     return status;
-                case S_OK:
+                case ENONE:
                     memcpy(d + n, s + n, n + page_size < program_header->memsize ? page_size : program_header->memsize - n);
                 }
             }
@@ -36,5 +36,5 @@ int load_program(struct elf_file_header_t *elf)
         count--;
         program_header = (struct elf_program_header_t*)((void*)program_header + elf->phsize);
     }
-    return S_OK;
+    return ENONE;
 }

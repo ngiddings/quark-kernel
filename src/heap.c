@@ -103,7 +103,7 @@ int heap_contruct(struct heap_t *heap, void *base, void *start, size_t heap_size
         if((flags & PAGE_PRESENT) == 0)
         {
             int status = map_page((void*)heap->header + i, reserve_page(), PAGE_RW);
-            if(status != S_OK)
+            if(status != ENONE)
             {
                 return status;
             }
@@ -129,7 +129,7 @@ int heap_contruct(struct heap_t *heap, void *base, void *start, size_t heap_size
             heap->header[i + (1 << heap->tree_height)].state = UNAVAIL;
         }
     }
-    return S_OK;
+    return ENONE;
 }
 
 void *heap_allocate(struct heap_t *heap, size_t size)
