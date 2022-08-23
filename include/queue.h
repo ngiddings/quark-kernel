@@ -1,5 +1,7 @@
 #pragma once
 
+#include "types/status.h"
+
 struct queue_node_t;
 
 /**
@@ -38,15 +40,16 @@ void queue_construct(struct queue_t *queue);
  * @brief Inserts a new item at the end of the queue.
  * 
  * @param queue 
- * @param ptr 
+ * @param ptr A pointer to some user-defined data to store on the queue.
+ * @return enum error_t
  */
-void queue_insert(struct queue_t *queue, void *ptr);
+enum error_t queue_insert(struct queue_t *queue, void *ptr);
 
 /**
  * @brief Removes the next item from the queue and returns it.
  * 
  * @param queue 
- * @return void* 
+ * @return void* The pointer stored at the front of the queue.
  */
 void *queue_get_next(struct queue_t *queue);
 
@@ -54,7 +57,7 @@ void *queue_get_next(struct queue_t *queue);
  * @brief Returns the next item on the queue without removing it.
  * 
  * @param queue 
- * @return void* 
+ * @return void* The pointer stored at the front of the queue.
  */
 void *queue_peek(struct queue_t *queue);
 

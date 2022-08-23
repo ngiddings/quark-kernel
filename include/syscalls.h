@@ -3,19 +3,6 @@
 #include <stdbool.h>
 #include <stddef.h>
 
-enum syscall_id_t
-{
-    SYSCALL_TEST = 1,
-    SYSCALL_YIELD,
-    SYSCALL_MMAP,
-    SYSCALL_MUNMAP,
-    SYSCALL_TERMINATE_SELF,
-    SYSCALL_SEND,
-    SYSCALL_RECEIVE,
-    SYSCALL_OPEN_PORT,
-    SYSCALL_CLOSE_PORT
-};
-
 typedef union
 {
     long signed_int;
@@ -57,6 +44,6 @@ size_t send(syscall_arg_t recipient, syscall_arg_t message, syscall_arg_t flags)
 
 size_t receive(syscall_arg_t buffer, syscall_arg_t flags);
 
-size_t openport(syscall_arg_t id);
+size_t open_port(syscall_arg_t id);
 
-size_t closeport(syscall_arg_t id);
+size_t close_port(syscall_arg_t id);

@@ -11,16 +11,18 @@
 #include "platform/context.h"
 #include "platform/putc.h"
 #include "types/status.h"
+#include "types/syscallid.h"
 
 struct kernel_t kernel;
 
 void kernel_initialize(struct boot_info_t *boot_info)
 {
     insert_region(&boot_info->map, (physaddr_t)&_kernel_pstart, (physaddr_t)&_kernel_pend - (physaddr_t)&_kernel_pstart, M_UNAVAILABLE);
-    initialize_page_stack(&boot_info->map, (physaddr_t*)&_kernel_end);
-    kminit(&_kernel_start, page_stack_top(), 0xFFC00000 - (size_t)&_kernel_start, 64);
+    initialize_page_map(&boot_info->map, (physaddr_t*)&_kernel_end, boot_info->memory_size, page_size);
+    kminit(&_kernel_start, page_map_end(), 0xFFC00000 - (size_t)&_kernel_start, 64);
     initialize_screen();
     printf("***%s***\n", PACKAGE_STRING);
+    printf("Total memory: %08x\n", boot_info->memory_size);
     printf("Type\t\tLocation\t\tSize\n");
     for (size_t i = 0; i < boot_info->map.size && boot_info->map.array[i].size > 0; i++)
     {
@@ -31,7 +33,7 @@ void kernel_initialize(struct boot_info_t *boot_info)
     kernel.next_pid = 1;
     kernel.process_table = NULL;
     kernel.port_table = NULL;
-    if(construct_priority_queue(&kernel.priority_queue, 512) != S_OK)
+    if(construct_priority_queue(&kernel.priority_queue, 512) != ENONE)
     {
         panic("Failed to construct priority queue.");
     }
@@ -41,63 +43,63 @@ void kernel_initialize(struct boot_info_t *boot_info)
     set_syscall(SYSCALL_MUNMAP, 2, 0, munmap);
     set_syscall(SYSCALL_SEND, 3, 0, send);
     set_syscall(SYSCALL_RECEIVE, 2, 0, receive);
-    set_syscall(SYSCALL_OPEN_PORT, 1, 0, openport);
-    set_syscall(SYSCALL_CLOSE_PORT, 1, 0, closeport);
+    set_syscall(SYSCALL_OPEN_PORT, 1, 0, open_port);
+    set_syscall(SYSCALL_CLOSE_PORT, 1, 0, close_port);
     for(int i = 0; i < boot_info->module_count; i++)
     {
-        if(load_module(&boot_info->modules[i]) != S_OK)
+        if(kernel_load_module(&boot_info->modules[i]) != ENONE)
         {
             panic("Failed to load modules.");
         }
     }
 
-    if(initialize_interrupts() != S_OK)
+    if(initialize_interrupts() != ENONE)
     {
         panic("Failed to initialize interrupts.");
     }
 
     irq_enable();
-    load_context(next_process());
+    load_context(kernel_advance_scheduler());
 }
 
-int set_syscall(int id, int arg_count, int pid, void *func_ptr)
+enum error_t set_syscall(int id, int arg_count, int pid, void *func_ptr)
 {
     if(id < 0 || id > MAX_SYSCALL_ID)
     {
-        return S_OUT_OF_BOUNDS;
+        return EOUTOFBOUNDS;
     }
     else if(kernel.syscall_table[id].defined)
     {
-        return S_INVALID_ARGUMENT;
+        return EINVALIDARG;
     }
     else if(arg_count < 0 || arg_count > 3)
     {
-        return S_INVALID_ARGUMENT;
+        return EINVALIDARG;
     }
     else if(pid != 0 && avl_get(kernel.process_table, pid) == NULL)
     {
-        return S_DOESNT_EXIST;
+        return EDOESNTEXIST;
     }
     else if(func_ptr == NULL)
     {
-        return S_NULL_POINTER;
+        return ENULLPTR;
     }
     kernel.syscall_table[id].defined = true;
     kernel.syscall_table[id].arg_count = arg_count;
     kernel.syscall_table[id].process_id = pid;
     kernel.syscall_table[id].func_ptr_0 = func_ptr;
-    return S_OK;
+    return ENONE;
 }
 
 size_t do_syscall(enum syscall_id_t id, syscall_arg_t arg1, syscall_arg_t arg2, syscall_arg_t arg3, void *pc, void *stack, unsigned long flags)
 {
     if(id < 0 || id > MAX_SYSCALL_ID)
     {
-        return S_BAD_SYSCALL;
+        return ENOSYSCALL;
     }
     else if(!kernel.syscall_table[id].defined)
     {
-        return S_BAD_SYSCALL;
+        return ENOSYSCALL;
     }
     bool switched_address_space = false;
     if(kernel.syscall_table[id].process_id > 0)
@@ -106,7 +108,7 @@ size_t do_syscall(enum syscall_id_t id, syscall_arg_t arg1, syscall_arg_t arg2, 
         if(callee == NULL)
         {
             kernel.syscall_table[id].defined = false;
-            return S_BAD_SYSCALL;
+            return ENOSYSCALL;
         }
         paging_load_address_space(callee->page_table);
         switched_address_space = true;
@@ -137,10 +139,10 @@ size_t do_syscall(enum syscall_id_t id, syscall_arg_t arg1, syscall_arg_t arg2, 
     return result;
 }
 
-int load_module(struct module_t *module)
+enum error_t kernel_load_module(struct module_t *module)
 {
     physaddr_t module_address_space = create_address_space();
-    if(module_address_space == S_OUT_OF_MEMORY) {
+    if(module_address_space == ENOMEM) {
         panic("failed to create address space for module: out of memory");
     }
     paging_load_address_space(module_address_space);
@@ -151,9 +153,9 @@ int load_module(struct module_t *module)
         int status = map_page(load_base + load_offset, p, PAGE_RW);
         switch(status)
         {
-        case S_OUT_OF_MEMORY:
+        case ENOMEM:
             panic("ran out of memory while mapping module");
-        case S_OUT_OF_BOUNDS:
+        case EOUTOFBOUNDS:
             panic("got out-of-bounds error while mapping module");
         }
         load_offset += page_size;
@@ -162,9 +164,9 @@ int load_module(struct module_t *module)
     int status = load_program(load_base);
     switch(status)
     {
-    case S_OUT_OF_MEMORY:
+    case ENOMEM:
         panic("ran out of memory while reading ELF file");
-    case S_OUT_OF_BOUNDS:
+    case EOUTOFBOUNDS:
         panic("got out-of-bounds error while reading ELF file");
     }
     void *module_entry = ((struct elf_file_header_t*)load_base)->entry;
@@ -175,16 +177,16 @@ int load_module(struct module_t *module)
         int status = unmap_page(load_base + load_offset);
         switch(status)
         {
-        case S_OUT_OF_MEMORY:
+        case ENOMEM:
             panic("ran out of memory while unmapping module");
-        case S_OUT_OF_BOUNDS:
+        case EOUTOFBOUNDS:
             panic("got out-of-bounds error while unmapping module");
         }
         load_offset += page_size;
     }
-    if(add_process(module_entry, 1, current_address_space()) > 0)
+    if(kernel_spawn_process(module_entry, 1, current_address_space()) > 0)
     {
-        return S_OK;
+        return ENONE;
     }
     else
     {
@@ -192,7 +194,7 @@ int load_module(struct module_t *module)
     }
 }
 
-int active_process()
+unsigned long kernel_current_pid()
 {
     if(kernel.active_process == NULL)
     {
@@ -204,14 +206,40 @@ int active_process()
     }
 }
 
-int add_process(void *program_entry, int priority, physaddr_t address_space)
+struct process_context_t *kernel_current_context()
+{
+    if(kernel.active_process == NULL)
+    {
+        return NULL;
+    }
+    else
+    {
+        return kernel.active_process->ctx;
+    }  
+}
+
+unsigned long kernel_spawn_process(void *program_entry, int priority, physaddr_t address_space)
 {
     struct process_t *new_process = (struct process_t*) kmalloc(sizeof(struct process_t));
     if(new_process == NULL)
     {
         return 0;
     }
-    struct process_context_t *initial_context = initialize_context(program_entry);
+    struct process_context_t *initial_context = kmalloc(sizeof(struct process_context_t));
+    if(initial_context == NULL)
+    {
+        return 0;
+    }
+    physaddr_t stack_page = reserve_page();
+    if(stack_page % page_size)
+    {
+        return 0;
+    }
+    map_page((void*)&_kernel_start - page_size, stack_page, PAGE_PRESENT | PAGE_USERMODE | PAGE_RW);
+    memset(initial_context, 0, sizeof(struct process_context_t));
+    set_context_pc(initial_context, program_entry);
+    set_context_flags(initial_context, DEFAULT_FLAGS);
+    set_context_stack(initial_context, &_kernel_start);
     new_process->priority = priority;
     new_process->pid = kernel.next_pid;
     new_process->page_table = address_space;
@@ -226,7 +254,7 @@ int add_process(void *program_entry, int priority, physaddr_t address_space)
     return new_process->pid;
 }
 
-struct process_context_t *next_process()
+struct process_context_t *kernel_advance_scheduler()
 {  
     if(kernel.active_process != NULL)
     {
@@ -242,12 +270,12 @@ struct process_context_t *next_process()
     panic("no processes available to enter!");
 }
 
-int terminate_process(size_t process_id)
+enum error_t kernel_terminate_process(size_t process_id)
 {
     struct process_t *process = avl_get(kernel.process_table, process_id);
     if(process == NULL)
     {
-        return S_DOESNT_EXIST;
+        return EDOESNTEXIST;
     }
     if(kernel.active_process == process)
     {
@@ -255,81 +283,84 @@ int terminate_process(size_t process_id)
     }
     kernel.process_table = avl_remove(kernel.process_table, process_id);
     priorityqueue_remove(&kernel.priority_queue, process);
-    destroy_context(process->ctx);
+    for(struct message_t *msg = queue_get_next(&process->message_queue); msg != NULL; msg = queue_get_next(&process->message_queue))
+    {
+        kfree(msg);
+    }
+    for(struct process_t *sender = queue_get_next(&process->sending_queue); sender != NULL; sender = queue_get_next(&process->sending_queue))
+    {
+        sender->state = PROCESS_ACTIVE;
+        set_context_return(sender->ctx, EEXITED);
+        priorityqueue_insert(&kernel.priority_queue, sender, sender->priority);
+    }
+    kfree(process->ctx);
     kfree(process);
-    return S_OK;
+    return ENONE;
 }
 
-int store_active_context(struct process_context_t *context, size_t size)
+enum error_t kernel_store_active_context(struct process_context_t *context)
 {
     if(kernel.active_process != NULL && kernel.active_process->ctx != NULL)
     {
-        memcpy(kernel.active_process->ctx, context, size);
-        return S_OK;
+        memcpy(kernel.active_process->ctx, context, sizeof(*context));
+        return ENONE;
     }
     else
     {
-        return S_DOESNT_EXIST;
+        return EDOESNTEXIST;
     }
 }
 
-int open_port(unsigned long id)
+enum error_t kernel_create_port(unsigned long id)
 {
     if(avl_get(kernel.port_table, id) != NULL)
     {
-        return S_EXISTS;
+        return EEXISTS;
     }
     printf("opening port %i -> %i\n", id, kernel.active_process->pid);
     struct port_t *port = kmalloc(sizeof(struct port_t));
     port->id = id;
     port->owner_pid = kernel.active_process->pid;
     kernel.port_table = avl_insert(kernel.port_table, id, port);
-    return S_OK;
+    return ENONE;
 }
 
-int close_port(unsigned long id)
+enum error_t kernel_remove_port(unsigned long id)
 {
     struct port_t *port = avl_get(kernel.port_table, id);
     if(port == NULL)
     {
-        return S_DOESNT_EXIST;
+        return EDOESNTEXIST;
     }
     else if(port->owner_pid != kernel.active_process->pid)
     {
-        return S_INVALID_ARGUMENT;
+        return EPERM;
     }
     printf("closing port %i attached to %i\n", id, kernel.active_process->pid);
     kernel.port_table = avl_remove(kernel.port_table, id);
     kfree(port);
-    return S_OK;
+    return ENONE;
 }
 
-int send_message(int recipient, struct message_t *message, int flags)
+unsigned long kernel_get_port_owner(unsigned long id)
 {
-    int op_type = flags & IO_OP;
-    int dest_type = flags & IO_RECIPIENT_TYPE;
-    if((flags & ~(IO_OP | IO_RECIPIENT_TYPE)) != 0 || dest_type >= IO_MAILBOX)
+    struct port_t *port = avl_get(kernel.port_table, id);
+    if(port == NULL)
     {
-        printf("Invalid flags on send_message\n");
-        return S_INVALID_ARGUMENT;
+        return 0;
     }
-    if(dest_type == IO_PORT)
+    else
     {
-        struct port_t *port = avl_get(kernel.port_table, recipient);
-        if(port != NULL)
-        {
-            recipient = port->owner_pid;
-        }
-        else
-        {
-            printf("Port %i does not exist\n", recipient);
-            return S_DOESNT_EXIST;
-        }
+        return port->owner_pid;
     }
+}
+
+enum error_t kernel_send_message(unsigned long recipient, struct message_t *message)
+{
     struct process_t *dest = avl_get(kernel.process_table, recipient);
     if(dest == NULL)
     {
-        return S_DOESNT_EXIST;
+        return EDOESNTEXIST;
     }
     else if(dest->message_buffer != NULL)
     {
@@ -342,29 +373,51 @@ int send_message(int recipient, struct message_t *message, int flags)
         paging_load_address_space(kernel.active_process->page_table);
         dest->message_buffer = NULL;
         dest->state = PROCESS_ACTIVE;
-        set_context_return(dest->ctx, S_OK);
+        set_context_return(dest->ctx, ENONE);
         priorityqueue_insert(&kernel.priority_queue, dest, dest->priority);
-        return S_OK;
-    }
-    else if(op_type == IO_ASYNC)
-    {
-        printf("Queueing message from %i to %i\n", kernel.active_process->pid, dest->pid);
-        struct message_t *queued_msg = kmalloc(sizeof(struct message_t));
-        if(queued_msg == NULL)
-        {
-            return S_OUT_OF_MEMORY;
-        }
-        memcpy(queued_msg, message, sizeof(struct message_t));
-        queue_insert(&dest->message_queue, queued_msg);
-        return S_OK;
+        return ENONE;
     }
     else
+    {
+        return EBUSY;
+    }
+}
+
+enum error_t kernel_queue_sender(unsigned long recipient)
+{
+    struct process_t *dest = avl_get(kernel.process_table, recipient);
+    if(dest != NULL)
     {
         printf("Queueing process %i to %i\n", kernel.active_process->pid, dest->pid);
         queue_insert(&dest->sending_queue, kernel.active_process);
         kernel.active_process->state = PROCESS_SENDING;
         kernel.active_process = NULL;
-        load_context(next_process());
+        return ENONE;
+    }
+    else
+    {
+        return EDOESNTEXIST;
+    }
+}
+
+enum error_t kernel_queue_message(unsigned long recipient, struct message_t *message)
+{
+    struct process_t *dest = avl_get(kernel.process_table, recipient);
+    if(dest != NULL)
+    {
+        printf("Queueing message from %i to %i\n", kernel.active_process->pid, dest->pid);
+        struct message_t *queued_msg = kmalloc(sizeof(struct message_t));
+        if(queued_msg == NULL)
+        {
+            return ENOMEM;
+        }
+        memcpy(queued_msg, message, sizeof(struct message_t));
+        queue_insert(&dest->message_queue, queued_msg);
+        return ENONE;
+    }
+    else
+    {
+        return EDOESNTEXIST;
     }
 }
 
@@ -380,27 +433,27 @@ int receive_message(struct message_t *buffer, int flags)
         paging_load_address_space(kernel.active_process->page_table);
         memcpy(buffer, &kernel_buffer, sizeof(struct message_t));
         sender->state = PROCESS_ACTIVE;
-        set_context_return(sender->ctx, S_OK);
+        set_context_return(sender->ctx, ENONE);
         priorityqueue_insert(&kernel.priority_queue, sender, sender->priority);
-        return S_OK;
+        return ENONE;
     }
     else if(kernel.active_process->message_queue.count > 0)
     {
         struct message_t *queued_msg = queue_get_next(&kernel.active_process->message_queue);
         memcpy(buffer, queued_msg, sizeof(struct message_t));
         kfree(queued_msg);
-        return S_OK;
+        return ENONE;
     }
     else if((flags & IO_OP) == IO_ASYNC)
     {
-        return S_DOESNT_EXIST;
+        return EDOESNTEXIST;
     }
     else
     {
         kernel.active_process->message_buffer = buffer;
         kernel.active_process->state = PROCESS_REQUESTING;
         kernel.active_process = NULL;
-        load_context(next_process());
+        load_context(kernel_advance_scheduler());
     }
 }
 

@@ -68,6 +68,14 @@ struct multiboot2_memory_map_t
     struct multiboot2_map_entry_t entries;
 };
 
+struct multiboot2_memory_info_t
+{
+    uint32_t type;
+    uint32_t size;
+    uint32_t low_memory;
+    uint32_t high_memory;
+};
+
 void *read_multiboot_table_entry(struct boot_info_t *boot_info, void *table)
 {
     uint32_t *int_table = (uint32_t *)table;
@@ -75,6 +83,9 @@ void *read_multiboot_table_entry(struct boot_info_t *boot_info, void *table)
     {
     case MB_END_TAG:
         return NULL;
+    case MB_MEMORY_INFO:
+        boot_info->memory_size = ((struct multiboot2_memory_info_t*) table)->high_memory * 1024;
+        break;
     case MB_MEMORY_MAP: ;
         unsigned int tag_size = ((struct multiboot2_memory_map_t*) table)->size - 16;
         unsigned int entry_size = ((struct multiboot2_memory_map_t*) table)->entry_size;

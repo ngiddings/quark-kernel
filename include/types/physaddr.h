@@ -1,4 +1,5 @@
-#pragma once
+#ifndef _QUARK_PHYSADDR_H
+#define _QUARK_PHYSADDR_H
 
 #include <stdint.h>
 
@@ -8,4 +9,6 @@ typedef uint32_t physaddr_t;
 typedef uint64_t physaddr_t;
 #else
 typedef uint64_t physaddr_t;
+#endif
+
 #endif

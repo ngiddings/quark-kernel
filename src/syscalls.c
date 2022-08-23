@@ -2,6 +2,7 @@
 #include "kernel.h"
 #include "mmgr.h"
 #include "stdio.h"
+#include "platform/context.h"
 #include "types/status.h"
 
 size_t test_syscall(syscall_arg_t str)
@@ -17,29 +18,29 @@ size_t mmap(syscall_arg_t arg_location, syscall_arg_t arg_length, syscall_arg_t 
     unsigned long flags = arg_flags.unsigned_int;
     if(location % page_size != 0 || length % page_size != 0)
     {
-        return S_INVALID_ARGUMENT;
+        return EINVALIDARG;
     }
-    else if(location == NULL)
+    else if(location == (unsigned long)NULL)
     {
-        return S_NULL_POINTER;
+        return ENULLPTR;
     }
     for(size_t i = 0; i < length; i += page_size)
     {
         if(page_type((void*)(location + i)) & PAGE_PRESENT)
         {
-            return S_EXISTS;
+            return EEXISTS;
         }
     }
     size_t n = 0;
-    int status = S_OK;
-    while(n < length && status == S_OK)
+    int status = ENONE;
+    while(n < length && status == ENONE)
     {
         physaddr_t frame = reserve_page();
         status = frame % page_size;
-        if(status == S_OK)
+        if(status == ENONE)
         {
             status = map_page((void*)(location + n), frame, PAGE_USERMODE | PAGE_RW);
-            if(status != S_OK && free_page(frame) != S_OK)
+            if(status != ENONE && free_page(frame) != ENONE)
             {
                 panic("critical error reached during mmap.");
             }
@@ -50,7 +51,7 @@ size_t mmap(syscall_arg_t arg_location, syscall_arg_t arg_length, syscall_arg_t 
             break;
         }
     }
-    if(status != S_OK && munmap(arg_location, arg_length) != S_OK)
+    if(status != ENONE && munmap(arg_location, arg_length) != ENONE)
     {
         panic("critical error reached during mmap.");
     }
@@ -63,15 +64,15 @@ size_t munmap(syscall_arg_t arg_location, syscall_arg_t arg_length)
     unsigned long length = arg_length.unsigned_int;
     if(location % page_size != 0 || length % page_size != 0)
     {
-        return S_INVALID_ARGUMENT;
+        return EINVALIDARG;
     }
     else if(location == 0)
     {
-        return S_NULL_POINTER;
+        return ENULLPTR;
     }
     size_t n = 0;
-    int status = S_OK;
-    while(n < length && status == S_OK)
+    int status = ENONE;
+    while(n < length && status == ENONE)
     {
         int type = page_type((void*)(location + n));
         physaddr_t frame;
@@ -89,12 +90,47 @@ size_t munmap(syscall_arg_t arg_location, syscall_arg_t arg_length)
 
 size_t terminate_self()
 {
-    return terminate_process(active_process());
+    return kernel_terminate_process(kernel_current_pid());
 }
 
 size_t send(syscall_arg_t recipient, syscall_arg_t message, syscall_arg_t flags)
 {
-    return send_message(recipient.unsigned_int, message.ptr, flags.unsigned_int);
+    unsigned long op_type = flags.unsigned_int & IO_OP;
+    unsigned long dest_type = flags.unsigned_int & IO_RECIPIENT_TYPE;
+    if((flags.unsigned_int & ~(IO_OP | IO_RECIPIENT_TYPE)) != 0 || dest_type >= IO_MAILBOX)
+    {
+        printf("Invalid flags on send()\n");
+        return EINVALIDARG;
+    }
+    if(dest_type == IO_PORT)
+    {
+        recipient.unsigned_int = kernel_get_port_owner(recipient.unsigned_int);
+        if(recipient.unsigned_int == 0)
+        {
+            return EDOESNTEXIST;
+        }
+    }
+    enum error_t status = kernel_send_message(recipient.unsigned_int, message.ptr);
+    if(status == EBUSY && op_type == IO_SYNC)
+    {
+        status = kernel_queue_sender(recipient.unsigned_int);
+        if(status)
+        {
+            return status;
+        }
+        else
+        {
+            load_context(kernel_advance_scheduler());
+        }
+    }
+    else if(status == EBUSY && op_type == IO_ASYNC)
+    {
+        return kernel_queue_message(recipient.unsigned_int, message.ptr);
+    }
+    else
+    {
+        return status;
+    }
 }
 
 size_t receive(syscall_arg_t buffer, syscall_arg_t flags)
@@ -102,12 +138,12 @@ size_t receive(syscall_arg_t buffer, syscall_arg_t flags)
     return receive_message(buffer.ptr, flags.unsigned_int);
 }
 
-size_t openport(syscall_arg_t id)
+size_t open_port(syscall_arg_t id)
 {
-    return open_port(id.unsigned_int);
+    return kernel_create_port(id.unsigned_int);
 }
 
-size_t closeport(syscall_arg_t id)
+size_t close_port(syscall_arg_t id)
 {
-    return close_port(id.unsigned_int);
+    return kernel_remove_port(id.unsigned_int);
 }
