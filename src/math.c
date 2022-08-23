@@ -5,7 +5,7 @@ int ilog2(unsigned int x)
 #if defined __GNUC__
     if(x <= 1)
         return 0;
-    return 32 - __builtin_clzl(x - 1);
+    return 32 - __builtin_clz(x - 1);
 #else
     static const int table[32] = {
         0,  9,  1, 10, 13, 21,  2, 29,
