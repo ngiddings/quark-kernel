@@ -1,4 +1,5 @@
-#pragma once
+#ifndef _QUARK_ERROR_H
+#define _QUARK_ERROR_H
 
 enum error_t
 {
@@ -7,9 +8,13 @@ enum error_t
     EOUTOFBOUNDS,
     EINVALIDARG,
     ENOMEM,
+    ENOTPRESENT,
     EDOESNTEXIST,
     EEXISTS,
     ENOSYSCALL,
     EPERM,
-    EBUSY
+    EBUSY,
+    EEXITED
 };
+
+#endif
