@@ -18,10 +18,11 @@ struct kernel_t kernel;
 void kernel_initialize(struct boot_info_t *boot_info)
 {
     insert_region(&boot_info->map, (physaddr_t)&_kernel_pstart, (physaddr_t)&_kernel_pend - (physaddr_t)&_kernel_pstart, M_UNAVAILABLE);
-    initialize_page_stack(&boot_info->map, (physaddr_t*)&_kernel_end);
-    kminit(&_kernel_start, page_stack_top(), 0xFFC00000 - (size_t)&_kernel_start, 64);
+    initialize_page_map(&boot_info->map, (physaddr_t*)&_kernel_end, boot_info->memory_size, page_size);
+    kminit(&_kernel_start, page_map_end(), 0xFFC00000 - (size_t)&_kernel_start, 64);
     initialize_screen();
     printf("***%s***\n", PACKAGE_STRING);
+    printf("Total memory: %08x\n", boot_info->memory_size);
     printf("Type\t\tLocation\t\tSize\n");
     for (size_t i = 0; i < boot_info->map.size && boot_info->map.array[i].size > 0; i++)
     {
@@ -217,14 +218,22 @@ struct process_context_t *kernel_current_context()
     }  
 }
 
-enum error_t kernel_spawn_process(void *program_entry, int priority, physaddr_t address_space)
+unsigned long kernel_spawn_process(void *program_entry, int priority, physaddr_t address_space)
 {
     struct process_t *new_process = (struct process_t*) kmalloc(sizeof(struct process_t));
     if(new_process == NULL)
     {
         return 0;
     }
-    struct process_context_t *initial_context = initialize_context(program_entry);
+    struct process_context_t *initial_context = kmalloc(sizeof(struct process_context_t));
+    if(initial_context == NULL)
+    {
+        return 0;
+    }
+    memset(initial_context, 0, sizeof(struct process_context_t));
+    set_context_pc(initial_context, program_entry);
+    set_context_flags(initial_context, DEFAULT_FLAGS);
+    set_context_stack(initial_context, NULL);
     new_process->priority = priority;
     new_process->pid = kernel.next_pid;
     new_process->page_table = address_space;
@@ -268,16 +277,26 @@ enum error_t kernel_terminate_process(size_t process_id)
     }
     kernel.process_table = avl_remove(kernel.process_table, process_id);
     priorityqueue_remove(&kernel.priority_queue, process);
-    destroy_context(process->ctx);
+    for(struct message_t *msg = queue_get_next(&process->message_queue); msg != NULL; msg = queue_get_next(&process->message_queue))
+    {
+        kfree(msg);
+    }
+    for(struct process_t *sender = queue_get_next(&process->sending_queue); sender != NULL; sender = queue_get_next(&process->sending_queue))
+    {
+        sender->state = PROCESS_ACTIVE;
+        set_context_return(sender->ctx, EEXITED);
+        priorityqueue_insert(&kernel.priority_queue, sender, sender->priority);
+    }
+    kfree(process->ctx);
     kfree(process);
     return ENONE;
 }
 
-enum error_t kernel_store_active_context(struct process_context_t *context, size_t size)
+enum error_t kernel_store_active_context(struct process_context_t *context)
 {
     if(kernel.active_process != NULL && kernel.active_process->ctx != NULL)
     {
-        memcpy(kernel.active_process->ctx, context, size);
+        memcpy(kernel.active_process->ctx, context, sizeof(*context));
         return ENONE;
     }
     else
@@ -330,7 +349,7 @@ unsigned long kernel_get_port_owner(unsigned long id)
     }
 }
 
-enum error_t kernel_send_message(int recipient, struct message_t *message)
+enum error_t kernel_send_message(unsigned long recipient, struct message_t *message)
 {
     struct process_t *dest = avl_get(kernel.process_table, recipient);
     if(dest == NULL)
@@ -358,7 +377,7 @@ enum error_t kernel_send_message(int recipient, struct message_t *message)
     }
 }
 
-enum error_t kernel_queue_sender(int recipient)
+enum error_t kernel_queue_sender(unsigned long recipient)
 {
     struct process_t *dest = avl_get(kernel.process_table, recipient);
     if(dest != NULL)
@@ -375,7 +394,7 @@ enum error_t kernel_queue_sender(int recipient)
     }
 }
 
-enum error_t kernel_queue_message(int recipient, struct message_t *message)
+enum error_t kernel_queue_message(unsigned long recipient, struct message_t *message)
 {
     struct process_t *dest = avl_get(kernel.process_table, recipient);
     if(dest != NULL)

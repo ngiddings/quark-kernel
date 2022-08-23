@@ -8,10 +8,24 @@
 extern const size_t page_size;
 
 /**
- * @brief Pop the topmost address from the stack and returns that value.
+ * @brief 
  * 
- * If the stack is empty, this function will instead return a status code. This
- * can be identified by testing the least signifigant bits of the return value.
+ * @param size 
+ * @return physaddr_t 
+ */
+physaddr_t reserve_region(size_t size);
+
+/**
+ * @brief 
+ * 
+ * @param location 
+ * @param size 
+ * @return int 
+ */
+int free_region(physaddr_t location, size_t size);
+
+/**
+ * @brief Reserves a single page and returns its physical address.
  * 
  * @param stack 
  * @return physaddr_t 
@@ -19,9 +33,7 @@ extern const size_t page_size;
 physaddr_t reserve_page();
 
 /**
- * @brief Pushes `location` onto the stack.
- * 
- * If there is no room on the stack, the stack will be unaffected.
+ * @brief Marks the page at the given location as free.
  * 
  * @param stack 
  * @param location 
@@ -41,22 +53,25 @@ size_t free_page_count();
  * 
  * @return void* 
  */
-void *page_stack_bottom();
+void *page_map_base();
 
 /**
  * @brief Get the location of the top of the page stack.
  * 
  * @return void* 
  */
-void *page_stack_top();
+void *page_map_end();
 
 /**
- * @brief Push all available pages in `map` onto the stack
+ * @brief Constructs the bitmaps used by the physical memory allocator.
  * 
- * @param stack 
  * @param map 
+ * @param base 
+ * @param memory_size 
+ * @param block_size 
+ * @return enum error_t 
  */
-int initialize_page_stack(struct memory_map_t *map, physaddr_t *stack_base);
+enum error_t initialize_page_map(struct memory_map_t *map, void *base, size_t memory_size, unsigned long block_size);
 
 /**
  * @brief Create a new top-level page table and map the kernel in it.

@@ -58,12 +58,12 @@ isr_preempt:
     mov 4(%ebp), %eax
     push %eax
 
-    // Load ESP, then push it onto stack
-    mov 12(%ebp), %eax
-    push %eax
-
     // Load SS, then push it onto stack
     mov 16(%ebp), %eax
+    push %eax
+
+    // Load ESP, then push it onto stack
+    mov 12(%ebp), %eax
     push %eax
 
     // Load EBP, then push it onto stack
@@ -84,7 +84,7 @@ isr_preempt:
     // Push pointer to the process context saved on the stack
     push %esp
 
-    call save_context
+    call kernel_store_active_context
     mov %ebp, %esp
 
     call kernel_advance_scheduler

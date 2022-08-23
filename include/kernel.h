@@ -35,8 +35,9 @@ struct boot_info_t
 {
     char *bootloader;
     char *parameters;
-    size_t module_count;
+    size_t memory_size;
     struct memory_map_t map;
+    size_t module_count;
     struct module_t modules[module_limit];
 };
 
@@ -94,9 +95,9 @@ unsigned long kernel_current_pid();
 
 struct process_context_t *kernel_current_context();
 
-enum error_t kernel_store_active_context(struct process_context_t *context, size_t size);
+enum error_t kernel_store_active_context(struct process_context_t *context);
 
-enum error_t kernel_spawn_process(void *program_entry, int priority, physaddr_t address_space);
+unsigned long kernel_spawn_process(void *program_entry, int priority, physaddr_t address_space);
 
 struct process_context_t *kernel_advance_scheduler();
 
@@ -108,11 +109,11 @@ enum error_t kernel_remove_port(unsigned long id);
 
 unsigned long kernel_get_port_owner(unsigned long id);
 
-enum error_t kernel_send_message(int recipient, struct message_t *message);
+enum error_t kernel_send_message(unsigned long recipient, struct message_t *message);
 
-enum error_t kernel_queue_sender(int recipient);
+enum error_t kernel_queue_sender(unsigned long recipient);
 
-enum error_t kernel_queue_message(int recipient, struct message_t *message);
+enum error_t kernel_queue_message(unsigned long recipient, struct message_t *message);
 
 int receive_message(struct message_t *buffer, int flags);
 
