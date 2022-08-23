@@ -230,10 +230,16 @@ unsigned long kernel_spawn_process(void *program_entry, int priority, physaddr_t
     {
         return 0;
     }
+    physaddr_t stack_page = reserve_page();
+    if(stack_page % page_size)
+    {
+        return 0;
+    }
+    map_page((void*)&_kernel_start - page_size, stack_page, PAGE_PRESENT | PAGE_USERMODE | PAGE_RW);
     memset(initial_context, 0, sizeof(struct process_context_t));
     set_context_pc(initial_context, program_entry);
     set_context_flags(initial_context, DEFAULT_FLAGS);
-    set_context_stack(initial_context, NULL);
+    set_context_stack(initial_context, &_kernel_start);
     new_process->priority = priority;
     new_process->pid = kernel.next_pid;
     new_process->page_table = address_space;
