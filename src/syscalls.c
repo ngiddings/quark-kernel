@@ -20,7 +20,7 @@ size_t mmap(syscall_arg_t arg_location, syscall_arg_t arg_length, syscall_arg_t 
     {
         return EINVALIDARG;
     }
-    else if(location == NULL)
+    else if(location == (unsigned long)NULL)
     {
         return ENULLPTR;
     }
