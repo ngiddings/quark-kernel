@@ -23,9 +23,13 @@ void queue_construct(struct queue_t *queue)
     queue->count = 0;
 }
 
-void queue_insert(struct queue_t *queue, void *ptr)
+enum error_t queue_insert(struct queue_t *queue, void *ptr)
 {
     struct queue_node_t *node = kmalloc(sizeof(struct queue_node_t));
+    if(node == NULL)
+    {
+        return ENOMEM;
+    }
     node->ptr = ptr;
     node->next = NULL;
     if(queue->last == NULL)
@@ -38,11 +42,16 @@ void queue_insert(struct queue_t *queue, void *ptr)
         queue->last = node;
     }
     queue->count++;
+    return ENONE;
 }
 
 void *queue_get_next(struct queue_t *queue)
 {
     struct queue_node_t *node = queue->first;
+    if(node == NULL)
+    {
+        return NULL;
+    }
     queue->first = node->next;
     if(queue->first == NULL)
     {
