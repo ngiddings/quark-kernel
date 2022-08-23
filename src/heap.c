@@ -1,6 +1,7 @@
 #include <stdbool.h>
 #include "heap.h"
 #include "mmgr.h"
+#include "math.h"
 #include "types/status.h"
 
 #define AVAIL 0
@@ -22,23 +23,6 @@ struct heap_node_t
     size_t mapped : 1;
     size_t state : 2;
 } __attribute__ ((packed));
-
-size_t ilog2(size_t n)
-{
-	size_t m = n;
-	size_t count = 0;
-	bool isPowerOfTwo = true;
-	while(m)
-	{
-		if((m & 1) == 1 && m > 1)
-		{
-			isPowerOfTwo = false;
-		}
-		count++;
-		m >>= 1;
-	}
-	return count - (isPowerOfTwo ? 1 : 0);
-}
 
 size_t find_free_block(struct heap_t *heap, size_t height)
 {
@@ -95,7 +79,7 @@ int heap_contruct(struct heap_t *heap, void *base, void *start, size_t heap_size
     heap->header = (struct heap_node_t*) start;
     heap->heap_size = heap_size;
     heap->block_size = block_size;
-    heap->tree_height = ilog2(heap_size / block_size);
+    heap->tree_height = llog2(heap_size / block_size);
     size_t header_size = (heap_size / block_size) << 1;
     for(size_t i = 1; i <= (heap_size / block_size) * 2; i++)
     {
@@ -136,7 +120,7 @@ void *heap_allocate(struct heap_t *heap, size_t size)
 {
     size += heap->block_size - 1;
     size -= size % heap->block_size;
-    size_t height = ilog2(size / heap->block_size);
+    size_t height = llog2(size / heap->block_size);
     size_t index = find_free_block(heap, height);
     if(index)
     {
