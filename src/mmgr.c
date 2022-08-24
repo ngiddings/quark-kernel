@@ -6,41 +6,6 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-/**
- * @brief Describes a stack containing the physical addresses of available page
- * frames.
- * 
- */
-struct page_stack_t
-{
-    
-    /**
-     * @brief The total number of physical pages managed by the system.
-     * 
-     */
-    unsigned long total_pages;
-
-    /**
-     * @brief Points to the topmost physical address on the stack.
-     * 
-     */
-    physaddr_t *stack_pointer;
-
-    /**
-     * @brief Points to the bottom of the stack.
-     * 
-     */
-    physaddr_t *base_pointer;
-
-    /**
-     * @brief Points to the limit of the stack. The stack cannot grow beyond
-     * this point.
-     * 
-     */
-    physaddr_t *limit_pointer;
-
-} page_stack;
-
 struct page_map_t
 {
     /**
