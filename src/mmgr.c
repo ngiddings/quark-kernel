@@ -6,42 +6,50 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+#define MAX_CACHE_SIZE 32
+
 struct page_map_t
 {
     /**
      * @brief The underlying bitmap representing the availability of chunks of
      * physical memory.
-     * 
+     *
      */
     unsigned long *bitmap;
 
     /**
-     * @brief The size of the bitmap in bytes.
+     * @brief Stores a list of available blocks of memory to speed up allocation.
      * 
+     */
+    unsigned long *cache;
+
+    /**
+     * @brief The size of the bitmap in bytes.
+     *
      */
     unsigned long bitmap_size;
 
     /**
      * @brief The size in bytes of the smallest unit of allocation.
-     * 
+     *
      * This value should either be the size of a page on the host system, or
      * possibly some number of pages.
-     * 
+     *
      */
     unsigned long block_size;
 
     /**
-     * @brief 
-     * 
+     * @brief
+     *
      */
     unsigned long height;
 
     /**
-     * @brief The number of available blocks of memory. 
-     * 
-     * Due to memory fragmentation, it may not be possible to allocate all 
+     * @brief The number of available blocks of memory.
+     *
+     * Due to memory fragmentation, it may not be possible to allocate all
      * available memory at once.
-     * 
+     *
      */
     unsigned long free_block_count;
 } page_map;
@@ -50,60 +58,77 @@ const int bitmap_word_size = 8 * sizeof(*page_map.bitmap);
 
 int split_block(int index)
 {
-    if(index)
+    if (index)
     {
-        int bitmap_index = index / bitmap_word_size;
-        int bitmap_offset = index % bitmap_word_size;
-        page_map.bitmap[bitmap_index] &= ~(1 << bitmap_offset);
+        unsigned long bitmap_index = index / bitmap_word_size;
+        unsigned long bitmap_offset = index % bitmap_word_size;
+        page_map.bitmap[bitmap_index] &= ~((unsigned long)1 << bitmap_offset);
         index *= 2;
         bitmap_index = index / bitmap_word_size;
-        bitmap_offset = index / bitmap_word_size;
-        page_map.bitmap[bitmap_index] |= 1 << bitmap_offset;
-        page_map.bitmap[bitmap_index] |= 1 << (bitmap_offset ^ 1);
+        bitmap_offset = index % bitmap_word_size;
+        page_map.bitmap[bitmap_index] |= (unsigned long)1 << bitmap_offset;
+        page_map.bitmap[bitmap_index] |= (unsigned long)1 << (bitmap_offset ^ 1);
+        unsigned long depth = llog2(index + 1) - 1;
+        unsigned long cache_start = llog2(bitmap_word_size);
+        if(depth >= cache_start && page_map.cache[depth - cache_start] == 0)
+        {
+            page_map.cache[depth - cache_start] = index + 1;
+        }
     }
     return index;
 }
 
 int find_free_region(int height)
 {
-    if(height > page_map.height || height < 0)
+    if (height > page_map.height || height < 0)
     {
         return 0;
     }
-    else if(height <= page_map.height - ilog2(bitmap_word_size))
+    else if (height <= page_map.height - ilog2(bitmap_word_size))
     {
-        for(int index = (1 << (page_map.height - height)) / bitmap_word_size; 
-            index < (1 << (page_map.height - height + 1)) / bitmap_word_size; 
-            index++)
+        if(page_map.cache[page_map.height - height - llog2(bitmap_word_size)])
         {
-            if(page_map.bitmap[index] != 0)
+            unsigned long index = page_map.cache[page_map.height - height - llog2(bitmap_word_size)];
+            page_map.cache[page_map.height - height - llog2(bitmap_word_size)] = 0;
+            return index;
+        }
+        unsigned long start = (1 << (page_map.height - height)) / bitmap_word_size;
+        unsigned long end = ((1 << (page_map.height - height + 1)) / bitmap_word_size);
+        for (int index = start; index < end; index++)
+        {
+            if (page_map.bitmap[index] != 0)
             {
-                return bitmap_word_size * index + __builtin_ctz(page_map.bitmap[index]);
+                return bitmap_word_size * index + __builtin_ctzl(page_map.bitmap[index]);
             }
         }
     }
     else
     {
-        static const int bitmasks[] = {0x00000002, 0x0000000C, 0x000000F0, 0x0000FF00, 0xFFFF0000};
+#if __SIZEOF_LONG__ == 8
+        static const unsigned long bitmasks[] = {0x00000002, 0x0000000C, 0x000000F0, 0x0000FF00, 0xFFFF0000, 0xFFFFFFFF00000000};
+#else
+        static const unsigned long bitmasks[] = {0x00000002, 0x0000000C, 0x000000F0, 0x0000FF00, 0xFFFF0000};
+#endif
         int depth = page_map.height - height;
-        if(page_map.bitmap[0] & bitmasks[depth])
+        if (page_map.bitmap[0] & bitmasks[depth])
         {
-            return __builtin_ctz(page_map.bitmap[0] & bitmasks[depth]);
+            return __builtin_ctzl(page_map.bitmap[0] & bitmasks[depth]);
         }
     }
     return split_block(find_free_region(height + 1));
 }
 
+
 physaddr_t reserve_region(size_t size)
 {
     int height = llog2(size / page_map.block_size);
     int index = find_free_region(height);
-    if(index)
+    if (index)
     {
         int bitmap_index = index / bitmap_word_size;
         int bitmap_offset = index % bitmap_word_size;
-        page_map.bitmap[bitmap_index] &= ~(1 << bitmap_offset);
-        return (page_map.block_size << height) * (index - (1 << (page_map.height - height)));
+        page_map.bitmap[bitmap_index] &= ~((unsigned long)1 << bitmap_offset);
+        return (page_map.block_size << height) * (index - ((unsigned long)1 << (page_map.height - height)));
     }
     else
     {
@@ -114,18 +139,29 @@ physaddr_t reserve_region(size_t size)
 int free_region(physaddr_t location, size_t size)
 {
     int height = llog2(size / page_map.block_size);
-    int index = (location / (page_map.block_size * (1 << height))) + (1 << (page_map.height - height));
+    int index = (location / (page_map.block_size * ((unsigned long)1 << height))) + (1 << (page_map.height - height));
     int bitmap_index = index / bitmap_word_size;
     int bitmap_offset = index % bitmap_word_size;
-    page_map.bitmap[bitmap_index] |= 1 << bitmap_offset;
-    while(page_map.bitmap[bitmap_index] & (1 << (bitmap_offset ^ 1)))
+    page_map.bitmap[bitmap_index] |= (unsigned long)1 << bitmap_offset;
+    unsigned long cache_start = llog2(bitmap_word_size);
+    while (page_map.bitmap[bitmap_index] & ((unsigned long)1 << (bitmap_offset ^ 1)))
     {
-        page_map.bitmap[bitmap_index] &= ~(1 << bitmap_offset);
-        page_map.bitmap[bitmap_index] &= ~(1 << (bitmap_offset ^ 1));
+        unsigned long depth = llog2(index + 1) - 1;
+        if(page_map.cache[depth - cache_start] == (index ^ 1))
+        {
+            page_map.cache[depth - cache_start] = ENOMEM;
+        }
+        page_map.bitmap[bitmap_index] &= ~((unsigned long)1 << bitmap_offset);
+        page_map.bitmap[bitmap_index] &= ~((unsigned long)1 << (bitmap_offset ^ 1));
         index /= 2;
         bitmap_index = index / bitmap_word_size;
         bitmap_offset = index % bitmap_word_size;
-        page_map.bitmap[bitmap_index] |= 1 << bitmap_offset;
+        page_map.bitmap[bitmap_index] |= (unsigned long)1 << bitmap_offset;
+    }
+    unsigned long depth = llog2(index + 1) - 1;
+    if (depth >= cache_start && page_map.cache[depth - cache_start] == 0)
+    {
+        page_map.cache[depth - cache_start] = index;
     }
     return ENONE;
 }
@@ -157,9 +193,11 @@ void *page_map_end()
 
 enum error_t initialize_page_map(struct memory_map_t *map, void *base, size_t memory_size, unsigned long block_size)
 {
+    static unsigned long page_map_cache[MAX_CACHE_SIZE];
     // Round memory_size up to nearest power of 2
     memory_size = 1 << llog2(memory_size);
     page_map.bitmap = (unsigned long*) base;
+    page_map.cache = page_map_cache;
     page_map.bitmap_size = (memory_size / page_size) / 4;
     page_map.block_size = block_size;
     page_map.height = llog2(memory_size / block_size);
@@ -228,6 +266,10 @@ enum error_t initialize_page_map(struct memory_map_t *map, void *base, size_t me
             }
             location += chunk_size;
         }
+    }
+    for(int i = 0; i < MAX_CACHE_SIZE; i++)
+    {
+        page_map.cache[i] = 0;
     }
     return ENONE;
 }
