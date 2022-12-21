@@ -22,6 +22,8 @@
 #define IO_PORT 1 << 1
 #define IO_MAILBOX 2 << 1
 
+typedef unsigned long (*signal_handler_t)(void*, void*);
+
 struct process_context_t;
 
 struct module_t
@@ -73,10 +75,24 @@ struct port_t
     unsigned long owner_pid;
 };
 
+struct signal_action_t
+{
+    unsigned long pid;
+    signal_handler_t func_ptr;
+    void (*trampoline_ptr)();
+    void *userdata;
+};
+
+struct signal_context_t
+{
+    unsigned long signal_id;
+};
+
 struct kernel_t
 {
     struct syscall_t syscall_table[MAX_SYSCALL_ID];
     struct priority_queue_t priority_queue;
+    struct avltree_t *interrupt_handlers;
     struct avltree_t *port_table;
     struct avltree_t *process_table;
     struct process_t *active_process;
@@ -111,9 +127,15 @@ unsigned long kernel_get_port_owner(unsigned long id);
 
 enum error_t kernel_send_message(unsigned long recipient, struct message_t *message);
 
-enum error_t kernel_queue_sender(unsigned long recipient);
-
 enum error_t kernel_queue_message(unsigned long recipient, struct message_t *message);
+
+enum error_t kernel_register_interrupt_handler(unsigned long interrupt, signal_handler_t handler, void *userdata);
+
+enum error_t kernel_remove_interrupt_handler(unsigned long interrupt);
+
+enum error_t kernel_execute_interrupt_handler(unsigned long interrupt);
+
+enum error_t kernel_signal_return();
 
 int receive_message(struct message_t *buffer, int flags);
 

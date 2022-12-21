@@ -362,7 +362,7 @@ enum error_t kernel_send_message(unsigned long recipient, struct message_t *mess
     {
         return EDOESNTEXIST;
     }
-    else if(dest->message_buffer != NULL)
+    else if(dest->message_buffer != NULL && dest->state == PROCESS_REQUESTING)
     {
         printf("Sending message directly from %i to %i\n", kernel.active_process->pid, dest->pid);
         struct message_t kernel_buffer;
@@ -380,23 +380,6 @@ enum error_t kernel_send_message(unsigned long recipient, struct message_t *mess
     else
     {
         return EBUSY;
-    }
-}
-
-enum error_t kernel_queue_sender(unsigned long recipient)
-{
-    struct process_t *dest = avl_get(kernel.process_table, recipient);
-    if(dest != NULL)
-    {
-        printf("Queueing process %i to %i\n", kernel.active_process->pid, dest->pid);
-        queue_insert(&dest->sending_queue, kernel.active_process);
-        kernel.active_process->state = PROCESS_SENDING;
-        kernel.active_process = NULL;
-        return ENONE;
-    }
-    else
-    {
-        return EDOESNTEXIST;
     }
 }
 
@@ -423,21 +406,7 @@ enum error_t kernel_queue_message(unsigned long recipient, struct message_t *mes
 
 int receive_message(struct message_t *buffer, int flags)
 {
-    if(kernel.active_process->sending_queue.count > 0)
-    {
-        struct message_t kernel_buffer;
-        struct process_t *sender = queue_get_next(&kernel.active_process->sending_queue);
-        paging_load_address_space(sender->page_table);
-        memcpy(&kernel_buffer, &sender->message_buffer, sizeof(struct message_t));
-        kernel_buffer.sender = sender->pid;
-        paging_load_address_space(kernel.active_process->page_table);
-        memcpy(buffer, &kernel_buffer, sizeof(struct message_t));
-        sender->state = PROCESS_ACTIVE;
-        set_context_return(sender->ctx, ENONE);
-        priorityqueue_insert(&kernel.priority_queue, sender, sender->priority);
-        return ENONE;
-    }
-    else if(kernel.active_process->message_queue.count > 0)
+    if(kernel.active_process->message_queue.count > 0)
     {
         struct message_t *queued_msg = queue_get_next(&kernel.active_process->message_queue);
         memcpy(buffer, queued_msg, sizeof(struct message_t));
@@ -455,6 +424,78 @@ int receive_message(struct message_t *buffer, int flags)
         kernel.active_process = NULL;
         load_context(kernel_advance_scheduler());
     }
+}
+
+enum error_t kernel_register_interrupt_handler(unsigned long interrupt, signal_handler_t handler, void *userdata)
+{
+    if(avl_get(kernel.interrupt_handlers, interrupt) != NULL)
+    {
+        return EEXISTS;
+    }
+    struct signal_action_t *action = kmalloc(sizeof(struct signal_action_t));
+    action->pid = kernel.active_process->pid;
+    action->func_ptr = handler;
+    action->userdata = userdata;
+    kernel.interrupt_handlers = avl_insert(kernel.interrupt_handlers, interrupt, action);
+    return ENONE;
+}
+
+enum error_t kernel_remove_interrupt_handler(unsigned long interrupt)
+{
+    if(avl_get(kernel.interrupt_handlers, interrupt) == NULL)
+    {
+        return EDOESNTEXIST;
+    }
+    kernel.interrupt_handlers = avl_remove(kernel.interrupt_handlers, interrupt);
+    return ENONE;
+}
+
+enum error_t kernel_execute_interrupt_handler(unsigned long interrupt)
+{
+    struct signal_action_t *action = avl_get(kernel.interrupt_handlers, interrupt);
+    if(action == NULL)
+    {
+        return EDOESNTEXIST;
+    }
+
+    struct process_t *process = avl_get(kernel.process_table, action->pid);
+    if(process == NULL)
+    {
+        kernel.interrupt_handlers = avl_remove(kernel.interrupt_handlers, interrupt);
+        return EDOESNTEXIST;
+    }
+
+    paging_load_address_space(process->page_table);
+
+    struct signal_context_t siginfo = {
+        .signal_id = interrupt
+    };
+    void *siginfo_ptr = context_stack_push_struct(process->ctx, &siginfo, sizeof(siginfo));
+    context_stack_push_struct(process->ctx, process->ctx, sizeof(*process->ctx));
+    context_stack_push(process->ctx, process->state);
+    context_call_func(process->ctx, action->func_ptr, action->trampoline_ptr, 2, action->userdata, siginfo_ptr);
+    if(process->state != PROCESS_ACTIVE)
+    {
+        process->state = PROCESS_ACTIVE;
+        priorityqueue_insert(&kernel.priority_queue, process, process->priority);
+    }
+
+    paging_load_address_space(kernel.active_process->page_table);
+
+    return ENONE;
+}
+
+enum error_t kernel_signal_return()
+{
+    context_cleanup_func(kernel.active_process->ctx, 2);
+    context_stack_pop(kernel.active_process->ctx, &kernel.active_process->state);
+    context_stack_pop_struct(kernel.active_process->ctx, kernel.active_process->ctx, sizeof(*kernel.active_process->ctx));
+    if(kernel.active_process->state == PROCESS_REQUESTING)
+    {
+        receive_message(kernel.active_process->message_buffer, 0);
+        load_context(kernel.active_process->ctx);
+    }
+    return ENONE;
 }
 
 void panic(const char *message)

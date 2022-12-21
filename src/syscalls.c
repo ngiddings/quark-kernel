@@ -111,19 +111,7 @@ size_t send(syscall_arg_t recipient, syscall_arg_t message, syscall_arg_t flags)
         }
     }
     enum error_t status = kernel_send_message(recipient.unsigned_int, message.ptr);
-    if(status == EBUSY && op_type == IO_SYNC)
-    {
-        status = kernel_queue_sender(recipient.unsigned_int);
-        if(status)
-        {
-            return status;
-        }
-        else
-        {
-            load_context(kernel_advance_scheduler());
-        }
-    }
-    else if(status == EBUSY && op_type == IO_ASYNC)
+    if(status == EBUSY && op_type == IO_ASYNC)
     {
         return kernel_queue_message(recipient.unsigned_int, message.ptr);
     }
