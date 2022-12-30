@@ -3,6 +3,7 @@
 #include "math.h"
 #include "platform/paging.h"
 #include "types/status.h"
+#include "stdio.h"
 #include <stdint.h>
 #include <stdbool.h>
 
@@ -104,8 +105,7 @@ int find_free_region(int height)
     {
         if(page_map.cache[page_map.height - height - llog2(bitmap_word_size)])
         {
-            unsig6], [test $host = i686-elf])
-ned long index = page_map.cache[page_map.height - height - llog2(bitmap_word_size)];
+            unsigned long index = page_map.cache[page_map.height - height - llog2(bitmap_word_size)];
             page_map.cache[page_map.height - height - llog2(bitmap_word_size)] = 0;
             return index;
         }
