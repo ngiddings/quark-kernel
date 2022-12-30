@@ -1,7 +1,7 @@
 #ifndef _QUARK_ERROR_H
 #define _QUARK_ERROR_H
 
-enum error_t
+typedef enum
 {
     ENONE = 0,
     ENULLPTR,
@@ -15,6 +15,6 @@ enum error_t
     EPERM,
     EBUSY,
     EEXITED
-};
+} error_t;
 
 #endif

@@ -54,7 +54,23 @@ struct page_map_t
     unsigned long free_block_count;
 } page_map;
 
-const int bitmap_word_size = 8 * sizeof(*page_map.bitmap);
+static const int bitmap_word_size = 8 * sizeof(*page_map.bitmap);
+
+static void clear_cache()
+{
+    for(int i = 0; i < MAX_CACHE_SIZE; i++)
+    {
+        page_map.cache[i] = 0;
+    }
+}
+
+static void clear_bitmap()
+{
+    for(int i = 0; i < page_map.bitmap_size / sizeof(*page_map.bitmap); i++)
+    {
+        page_map.bitmap[i] = 0;
+    }
+}
 
 int split_block(int index)
 {
@@ -88,7 +104,8 @@ int find_free_region(int height)
     {
         if(page_map.cache[page_map.height - height - llog2(bitmap_word_size)])
         {
-            unsigned long index = page_map.cache[page_map.height - height - llog2(bitmap_word_size)];
+            unsig6], [test $host = i686-elf])
+ned long index = page_map.cache[page_map.height - height - llog2(bitmap_word_size)];
             page_map.cache[page_map.height - height - llog2(bitmap_word_size)] = 0;
             return index;
         }
@@ -128,7 +145,10 @@ physaddr_t reserve_region(size_t size)
         int bitmap_index = index / bitmap_word_size;
         int bitmap_offset = index % bitmap_word_size;
         page_map.bitmap[bitmap_index] &= ~((unsigned long)1 << bitmap_offset);
-        return (page_map.block_size << height) * (index - ((unsigned long)1 << (page_map.height - height)));
+        physaddr_t page = (page_map.block_size << height) * (index - ((unsigned long)1 << (page_map.height - height)));
+        if(page < 0x10000)
+            ;//printf("Reserved %08x\n", page);
+        return page;
     }
     else
     {
@@ -149,7 +169,7 @@ int free_region(physaddr_t location, size_t size)
         unsigned long depth = llog2(index + 1) - 1;
         if(page_map.cache[depth - cache_start] == (index ^ 1))
         {
-            page_map.cache[depth - cache_start] = ENOMEM;
+            page_map.cache[depth - cache_start] = 0;
         }
         page_map.bitmap[bitmap_index] &= ~((unsigned long)1 << bitmap_offset);
         page_map.bitmap[bitmap_index] &= ~((unsigned long)1 << (bitmap_offset ^ 1));
@@ -191,7 +211,7 @@ void *page_map_end()
     return (void*)page_map.bitmap + page_map.bitmap_size;
 }
 
-enum error_t initialize_page_map(struct memory_map_t *map, void *base, size_t memory_size, unsigned long block_size)
+error_t initialize_page_map(struct memory_map_t *map, void *base, size_t memory_size, unsigned long block_size)
 {
     static unsigned long page_map_cache[MAX_CACHE_SIZE];
     // Round memory_size up to nearest power of 2
@@ -204,6 +224,8 @@ enum error_t initialize_page_map(struct memory_map_t *map, void *base, size_t me
     page_map.free_block_count = 0;
     int block_log = llog2(block_size);
     int pages_mapped = 0;
+    bool initialized = false;
+    printf("bmpsz: %08x bmploc: %08x\n", page_map.bitmap_size, page_map.bitmap);
     for(int i = 0; i < map->size; i++)
     {
         if(map->array[i].type != M_AVAILABLE)
@@ -212,65 +234,84 @@ enum error_t initialize_page_map(struct memory_map_t *map, void *base, size_t me
         }
         physaddr_t location = (map->array[i].location + page_size - 1) & ~(page_size - 1);
         physaddr_t region_end = map->array[i].location + map->array[i].size;
-        while(location + block_size <= region_end)
+        while(location + block_size <= region_end && pages_mapped < (page_map.bitmap_size + page_size - 1) / page_size)
         {
-            if(pages_mapped < page_map.bitmap_size / page_size)
+            void *page = (void*)page_map.bitmap + pages_mapped * page_size;
+            for(int level = 0; level < page_table_levels; level++)
             {
-                void *page = (void*)page_map.bitmap + pages_mapped * page_size;
-                for(int level = 0; level < page_table_levels; level++)
+                if(!(get_pte_type(page, level) & PAGE_PRESENT))
                 {
-                    if(!(get_pte_type(page, level) & PAGE_PRESENT))
+                    if(set_pte(page, level, PAGE_PRESENT | PAGE_RW, location))
                     {
-                        if(set_pte(page, level, PAGE_PRESENT | PAGE_RW, location))
-                        {
-                            return ENOMEM;
-                        }
-                        else if(level == page_table_levels - 1)
-                        {
-                            pages_mapped++;
-                        }
-                        break;
+                        return ENOMEM;
                     }
                     else if(level == page_table_levels - 1)
                     {
                         pages_mapped++;
                     }
+                    break;
                 }
-                location += page_size;
-                continue;
+                else if(level == page_table_levels - 1)
+                {
+                    pages_mapped++;
+                }
             }
+            location += page_size;
+            continue;
+        }
+
+        if(!initialized)
+        {
+            clear_bitmap();
+            initialized = true;
+        }
+
+        while(location + block_size <= region_end)
+        {
             int bit_offset = (location / block_size) % bitmap_word_size;
-            int bitmap_index = (location / block_size) / bitmap_word_size;
+            int bitmap_index = ((1 << (page_map.height - 0)) / bitmap_word_size) + (location / block_size) / bitmap_word_size;
             size_t chunk_size = (bitmap_word_size - bit_offset) * block_size;
+            // BUG: bitmap entries are uninitialized at first, never zeroed out
+            if(location < 0x180000)
+                printf("%08x ", page_map.bitmap[bitmap_index]);
             if(bit_offset == 0 && (region_end - location) >= chunk_size)
             {
+                if(location < 0x180000)
+                printf("a ");
                 // Set all bits in the word
                 page_map.bitmap[bitmap_index] = ~0;
             }
             else if(bit_offset == 0)
             {
+                if(location < 0x180000)
+                printf("b ");
                 // Set the first 'count' bits
                 int count = (region_end - location) >> block_log;
                 page_map.bitmap[bitmap_index] |= (1 << count) - 1;
             }
             else if((region_end - location) >= chunk_size)
             {
+                if(location < 0x180000)
+                printf("c ");
                 // Set all bits starting at 'bit_offset'
                 page_map.bitmap[bitmap_index] |= ~((1 << bit_offset) - 1);
             }
             else
             {
+                if(location < 0x180000)
+                printf("d ");
                 // Set all bits starting at 'bit_offset' up to 'count'
                 int count = (region_end - location) >> block_log;
                 page_map.bitmap[bitmap_index] |= ((1 << count) - 1) & ~((1 << bit_offset) - 1);
             }
+            if(location < 0x180000) {
+                printf("bmp: %08x loc: %08x end: %08x off: %i idx: %i cnt: %i\n", page_map.bitmap[bitmap_index], location, region_end, bit_offset, bitmap_index, (region_end - location) >> block_log);
+            }
+            
             location += chunk_size;
         }
     }
-    for(int i = 0; i < MAX_CACHE_SIZE; i++)
-    {
-        page_map.cache[i] = 0;
-    }
+    clear_cache();
     return ENONE;
 }
 

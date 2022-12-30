@@ -101,41 +101,41 @@ struct kernel_t
 
 void kernel_initialize(struct boot_info_t *boot_info);
 
-enum error_t set_syscall(int id, int arg_count, int pid, void *func_ptr);
+error_t set_syscall(int id, int arg_count, int pid, void *func_ptr);
 
-size_t do_syscall(enum syscall_id_t id, syscall_arg_t arg1, syscall_arg_t arg2, syscall_arg_t arg3, void *pc, void *stack, unsigned long flags);
+size_t do_syscall(syscall_id_t id, syscall_arg_t arg1, syscall_arg_t arg2, syscall_arg_t arg3, void *pc, void *stack, unsigned long flags);
 
-enum error_t kernel_load_module(struct module_t *module);
+error_t kernel_load_module(struct module_t *module);
 
 unsigned long kernel_current_pid();
 
 struct process_context_t *kernel_current_context();
 
-enum error_t kernel_store_active_context(struct process_context_t *context);
+error_t kernel_store_active_context(struct process_context_t *context);
 
 unsigned long kernel_spawn_process(void *program_entry, int priority, physaddr_t address_space);
 
 struct process_context_t *kernel_advance_scheduler();
 
-enum error_t kernel_terminate_process(size_t process_id);
+error_t kernel_terminate_process(size_t process_id);
 
-enum error_t kernel_create_port(unsigned long id);
+error_t kernel_create_port(unsigned long id);
 
-enum error_t kernel_remove_port(unsigned long id);
+error_t kernel_remove_port(unsigned long id);
 
 unsigned long kernel_get_port_owner(unsigned long id);
 
-enum error_t kernel_send_message(unsigned long recipient, struct message_t *message);
+error_t kernel_send_message(unsigned long recipient, struct message_t *message);
 
-enum error_t kernel_queue_message(unsigned long recipient, struct message_t *message);
+error_t kernel_queue_message(unsigned long recipient, struct message_t *message);
 
-enum error_t kernel_register_interrupt_handler(unsigned long interrupt, signal_handler_t handler, void *userdata);
+error_t kernel_register_interrupt_handler(unsigned long interrupt, signal_handler_t handler, void *userdata);
 
-enum error_t kernel_remove_interrupt_handler(unsigned long interrupt);
+error_t kernel_remove_interrupt_handler(unsigned long interrupt);
 
-enum error_t kernel_execute_interrupt_handler(unsigned long interrupt);
+error_t kernel_execute_interrupt_handler(unsigned long interrupt);
 
-enum error_t kernel_signal_return();
+error_t kernel_signal_return();
 
 int receive_message(struct message_t *buffer, int flags);
 

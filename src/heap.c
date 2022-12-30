@@ -19,9 +19,9 @@ struct heap_t
 
 struct heap_node_t
 {
-    size_t height : 5;
     size_t mapped : 1;
     size_t state : 2;
+    size_t height : 5;
 } __attribute__ ((packed));
 
 size_t find_free_block(struct heap_t *heap, size_t height)

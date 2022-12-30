@@ -1,4 +1,4 @@
-SUBDIRS = src
+SUBDIRS = src include
 
 quark.iso: src/quark-kernel rootfs/boot/grub/grub.cfg
 	mkdir -p rootfs/apps

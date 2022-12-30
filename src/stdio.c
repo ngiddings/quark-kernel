@@ -27,6 +27,7 @@ char *itoa(unsigned int n, unsigned int base, unsigned int width)
     static const char *digits = "0123456789abcdef";
     static char buffer[65];
     char *s = &buffer[64];
+    *s = 0;
     unsigned int count = 0;
     do
     {

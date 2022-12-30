@@ -43,7 +43,7 @@ void queue_construct(struct queue_t *queue);
  * @param ptr A pointer to some user-defined data to store on the queue.
  * @return enum error_t
  */
-enum error_t queue_insert(struct queue_t *queue, void *ptr);
+error_t queue_insert(struct queue_t *queue, void *ptr);
 
 /**
  * @brief Removes the next item from the queue and returns it.

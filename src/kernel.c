@@ -17,18 +17,19 @@ struct kernel_t kernel;
 
 void kernel_initialize(struct boot_info_t *boot_info)
 {
-    insert_region(&boot_info->map, (physaddr_t)&_kernel_pstart, (physaddr_t)&_kernel_pend - (physaddr_t)&_kernel_pstart, M_UNAVAILABLE);
-    initialize_page_map(&boot_info->map, (physaddr_t*)&_kernel_end, boot_info->memory_size, page_size);
-    kminit(&_kernel_start, page_map_end(), 0xFFC00000 - (size_t)&_kernel_start, 64);
     initialize_screen();
     printf("***%s***\n", PACKAGE_STRING);
     printf("Total memory: %08x\n", boot_info->memory_size);
+    printf("kernel: %08x ... %08x\n", &_kernel_pstart, &_kernel_pend);
     printf("Type\t\tLocation\t\tSize\n");
     for (size_t i = 0; i < boot_info->map.size && boot_info->map.array[i].size > 0; i++)
     {
         printf("%i\t\t\t%08x\t\t%u\n", boot_info->map.array[i].type, boot_info->map.array[i].location, boot_info->map.array[i].size);
     }
 
+    insert_region(&boot_info->map, (physaddr_t)&_kernel_pstart, (physaddr_t)&_kernel_pend - (physaddr_t)&_kernel_pstart, M_UNAVAILABLE);
+    initialize_page_map(&boot_info->map, (physaddr_t*)&_kernel_end, boot_info->memory_size, page_size);
+    kminit(&_kernel_start, page_map_end(), 0xFFC00000 - (size_t)&_kernel_start, 64);
     kernel.active_process = NULL;
     kernel.next_pid = 1;
     kernel.process_table = NULL;
@@ -62,7 +63,7 @@ void kernel_initialize(struct boot_info_t *boot_info)
     load_context(kernel_advance_scheduler());
 }
 
-enum error_t set_syscall(int id, int arg_count, int pid, void *func_ptr)
+error_t set_syscall(int id, int arg_count, int pid, void *func_ptr)
 {
     if(id < 0 || id > MAX_SYSCALL_ID)
     {
@@ -91,7 +92,7 @@ enum error_t set_syscall(int id, int arg_count, int pid, void *func_ptr)
     return ENONE;
 }
 
-size_t do_syscall(enum syscall_id_t id, syscall_arg_t arg1, syscall_arg_t arg2, syscall_arg_t arg3, void *pc, void *stack, unsigned long flags)
+size_t do_syscall(syscall_id_t id, syscall_arg_t arg1, syscall_arg_t arg2, syscall_arg_t arg3, void *pc, void *stack, unsigned long flags)
 {
     if(id < 0 || id > MAX_SYSCALL_ID)
     {
@@ -139,7 +140,7 @@ size_t do_syscall(enum syscall_id_t id, syscall_arg_t arg1, syscall_arg_t arg2, 
     return result;
 }
 
-enum error_t kernel_load_module(struct module_t *module)
+error_t kernel_load_module(struct module_t *module)
 {
     physaddr_t module_address_space = create_address_space();
     if(module_address_space == ENOMEM) {
@@ -264,13 +265,13 @@ struct process_context_t *kernel_advance_scheduler()
     if(kernel.active_process != NULL)
     {
         paging_load_address_space(kernel.active_process->page_table);
-        printf("entering process %08x cr3=%08x ctx=%08x.\n", kernel.active_process->pid, kernel.active_process->page_table, kernel.active_process->ctx);
+        printf("entering process %08x cr3=%08x ctx=%08x sched=%i.\n", kernel.active_process->pid, kernel.active_process->page_table, kernel.active_process->ctx, kernel.priority_queue.size);
         return kernel.active_process->ctx;
     }
     panic("no processes available to enter!");
 }
 
-enum error_t kernel_terminate_process(size_t process_id)
+error_t kernel_terminate_process(size_t process_id)
 {
     struct process_t *process = avl_get(kernel.process_table, process_id);
     if(process == NULL)
@@ -298,7 +299,7 @@ enum error_t kernel_terminate_process(size_t process_id)
     return ENONE;
 }
 
-enum error_t kernel_store_active_context(struct process_context_t *context)
+error_t kernel_store_active_context(struct process_context_t *context)
 {
     if(kernel.active_process != NULL && kernel.active_process->ctx != NULL)
     {
@@ -311,7 +312,7 @@ enum error_t kernel_store_active_context(struct process_context_t *context)
     }
 }
 
-enum error_t kernel_create_port(unsigned long id)
+error_t kernel_create_port(unsigned long id)
 {
     if(avl_get(kernel.port_table, id) != NULL)
     {
@@ -325,7 +326,7 @@ enum error_t kernel_create_port(unsigned long id)
     return ENONE;
 }
 
-enum error_t kernel_remove_port(unsigned long id)
+error_t kernel_remove_port(unsigned long id)
 {
     struct port_t *port = avl_get(kernel.port_table, id);
     if(port == NULL)
@@ -355,7 +356,7 @@ unsigned long kernel_get_port_owner(unsigned long id)
     }
 }
 
-enum error_t kernel_send_message(unsigned long recipient, struct message_t *message)
+error_t kernel_send_message(unsigned long recipient, struct message_t *message)
 {
     struct process_t *dest = avl_get(kernel.process_table, recipient);
     if(dest == NULL)
@@ -383,7 +384,7 @@ enum error_t kernel_send_message(unsigned long recipient, struct message_t *mess
     }
 }
 
-enum error_t kernel_queue_message(unsigned long recipient, struct message_t *message)
+error_t kernel_queue_message(unsigned long recipient, struct message_t *message)
 {
     struct process_t *dest = avl_get(kernel.process_table, recipient);
     if(dest != NULL)
@@ -426,7 +427,7 @@ int receive_message(struct message_t *buffer, int flags)
     }
 }
 
-enum error_t kernel_register_interrupt_handler(unsigned long interrupt, signal_handler_t handler, void *userdata)
+error_t kernel_register_interrupt_handler(unsigned long interrupt, signal_handler_t handler, void *userdata)
 {
     if(avl_get(kernel.interrupt_handlers, interrupt) != NULL)
     {
@@ -440,17 +441,19 @@ enum error_t kernel_register_interrupt_handler(unsigned long interrupt, signal_h
     return ENONE;
 }
 
-enum error_t kernel_remove_interrupt_handler(unsigned long interrupt)
+error_t kernel_remove_interrupt_handler(unsigned long interrupt)
 {
-    if(avl_get(kernel.interrupt_handlers, interrupt) == NULL)
+    struct signal_action_t *action = avl_get(kernel.interrupt_handlers, interrupt);
+    if(action == NULL)
     {
         return EDOESNTEXIST;
     }
+    kfree(action);
     kernel.interrupt_handlers = avl_remove(kernel.interrupt_handlers, interrupt);
     return ENONE;
 }
 
-enum error_t kernel_execute_interrupt_handler(unsigned long interrupt)
+error_t kernel_execute_interrupt_handler(unsigned long interrupt)
 {
     struct signal_action_t *action = avl_get(kernel.interrupt_handlers, interrupt);
     if(action == NULL)
@@ -485,7 +488,7 @@ enum error_t kernel_execute_interrupt_handler(unsigned long interrupt)
     return ENONE;
 }
 
-enum error_t kernel_signal_return()
+error_t kernel_signal_return()
 {
     context_cleanup_func(kernel.active_process->ctx, 2);
     context_stack_pop(kernel.active_process->ctx, &kernel.active_process->state);
