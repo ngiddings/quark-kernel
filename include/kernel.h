@@ -22,6 +22,8 @@
 #define IO_PORT 1 << 1
 #define IO_MAILBOX 2 << 1
 
+typedef unsigned long (*signal_handler_t)(void*, void*);
+
 struct process_context_t;
 
 struct module_t
@@ -73,10 +75,24 @@ struct port_t
     unsigned long owner_pid;
 };
 
+struct signal_action_t
+{
+    unsigned long pid;
+    signal_handler_t func_ptr;
+    void (*trampoline_ptr)();
+    void *userdata;
+};
+
+struct signal_context_t
+{
+    unsigned long signal_id;
+};
+
 struct kernel_t
 {
     struct syscall_t syscall_table[MAX_SYSCALL_ID];
     struct priority_queue_t priority_queue;
+    struct avltree_t *interrupt_handlers;
     struct avltree_t *port_table;
     struct avltree_t *process_table;
     struct process_t *active_process;
@@ -85,35 +101,41 @@ struct kernel_t
 
 void kernel_initialize(struct boot_info_t *boot_info);
 
-enum error_t set_syscall(int id, int arg_count, int pid, void *func_ptr);
+error_t set_syscall(int id, int arg_count, int pid, void *func_ptr);
 
-size_t do_syscall(enum syscall_id_t id, syscall_arg_t arg1, syscall_arg_t arg2, syscall_arg_t arg3, void *pc, void *stack, unsigned long flags);
+size_t do_syscall(syscall_id_t id, syscall_arg_t arg1, syscall_arg_t arg2, syscall_arg_t arg3, void *pc, void *stack, unsigned long flags);
 
-enum error_t kernel_load_module(struct module_t *module);
+error_t kernel_load_module(struct module_t *module);
 
 unsigned long kernel_current_pid();
 
 struct process_context_t *kernel_current_context();
 
-enum error_t kernel_store_active_context(struct process_context_t *context);
+error_t kernel_store_active_context(struct process_context_t *context);
 
 unsigned long kernel_spawn_process(void *program_entry, int priority, physaddr_t address_space);
 
 struct process_context_t *kernel_advance_scheduler();
 
-enum error_t kernel_terminate_process(size_t process_id);
+error_t kernel_terminate_process(size_t process_id);
 
-enum error_t kernel_create_port(unsigned long id);
+error_t kernel_create_port(unsigned long id);
 
-enum error_t kernel_remove_port(unsigned long id);
+error_t kernel_remove_port(unsigned long id);
 
 unsigned long kernel_get_port_owner(unsigned long id);
 
-enum error_t kernel_send_message(unsigned long recipient, struct message_t *message);
+error_t kernel_send_message(unsigned long recipient, struct message_t *message);
 
-enum error_t kernel_queue_sender(unsigned long recipient);
+error_t kernel_queue_message(unsigned long recipient, struct message_t *message);
 
-enum error_t kernel_queue_message(unsigned long recipient, struct message_t *message);
+error_t kernel_register_interrupt_handler(unsigned long interrupt, signal_handler_t handler, void *userdata);
+
+error_t kernel_remove_interrupt_handler(unsigned long interrupt);
+
+error_t kernel_execute_interrupt_handler(unsigned long interrupt);
+
+error_t kernel_signal_return();
 
 int receive_message(struct message_t *buffer, int flags);
 

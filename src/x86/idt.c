@@ -125,7 +125,7 @@ void load_tr(uint16_t gdt_offset)
 
 void create_interrupt_descriptor(struct interrupt_descriptor_t *descriptor, void *isr, enum isr_type_t type, uint32_t privilage, uint32_t selector)
 {
-    if(type != INTERRPUT_TASK32)
+    if(type != INTERRUPT_TASK32)
     {
         descriptor->offset_1 = (uint32_t) isr & 0xFFFF;
         descriptor->offset_2 = (uint32_t) isr >> 16;
@@ -245,15 +245,15 @@ void initialize_idt()
     memset(idt, 0, sizeof(struct interrupt_descriptor_t) * idt_size);
     for(int i = 0; i < idt_size; i++)
     {
-        create_interrupt_descriptor(&idt[i], (void*)isr_generic, INTERRPUT_INT32, 0, 8);
+        create_interrupt_descriptor(&idt[i], (void*)isr_generic, INTERRUPT_INT32, 0, 8);
     }
-    create_interrupt_descriptor(&idt[EXCEPTION_DIV_BY_0], (void*)isr_division_by_zero, INTERRPUT_INT32, 0, 8);
-    create_interrupt_descriptor(&idt[EXCEPTION_SEGMENT_NOT_PRESENT], (void*)isr_segment_not_present, INTERRPUT_TRAP32, 0, 8);
-    create_interrupt_descriptor(&idt[EXCEPTION_GPF], (void*)isr_gp_fault, INTERRPUT_TRAP32, 0, 8);
-    create_interrupt_descriptor(&idt[EXCEPTION_PAGE_FAULT], (void*)isr_page_fault, INTERRPUT_TRAP32, 0, 8);
-    create_interrupt_descriptor(&idt[EXCEPTION_DOUBLE_FAULT], /*(void*)isr_double_fault*/NULL, INTERRPUT_TASK32, 0, 8 * 6);
-    create_interrupt_descriptor(&idt[ISR_PREEMPT], (void*)isr_preempt, INTERRPUT_INT32, 3, 8);
-    create_interrupt_descriptor(&idt[ISR_APIC_TIMER], (void*)isr_timer, INTERRPUT_INT32, 0, 8);
-    create_interrupt_descriptor(&idt[ISR_SYSCALL], (void*)isr_syscall, INTERRPUT_INT32, 3, 8);
+    create_interrupt_descriptor(&idt[EXCEPTION_DIV_BY_0], (void*)isr_division_by_zero, INTERRUPT_INT32, 0, 8);
+    create_interrupt_descriptor(&idt[EXCEPTION_SEGMENT_NOT_PRESENT], (void*)isr_segment_not_present, INTERRUPT_TRAP32, 0, 8);
+    create_interrupt_descriptor(&idt[EXCEPTION_GPF], (void*)isr_gp_fault, INTERRUPT_TRAP32, 0, 8);
+    create_interrupt_descriptor(&idt[EXCEPTION_PAGE_FAULT], (void*)isr_page_fault, INTERRUPT_TRAP32, 0, 8);
+    create_interrupt_descriptor(&idt[EXCEPTION_DOUBLE_FAULT], /*(void*)isr_double_fault*/NULL, INTERRUPT_TASK32, 0, 8 * 6);
+    create_interrupt_descriptor(&idt[ISR_PREEMPT], (void*)isr_preempt, INTERRUPT_INT32, 3, 8);
+    create_interrupt_descriptor(&idt[ISR_APIC_TIMER], (void*)isr_timer, INTERRUPT_INT32, 0, 8);
+    create_interrupt_descriptor(&idt[ISR_SYSCALL], (void*)isr_syscall, INTERRUPT_INT32, 3, 8);
     load_idt(idt);
 }

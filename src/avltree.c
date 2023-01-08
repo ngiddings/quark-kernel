@@ -179,20 +179,20 @@ struct avltree_t *avl_remove(struct avltree_t *tree, int key)
 
 void *avl_get(struct avltree_t *tree, int key)
 {
-    if(tree == NULL)
+    while(tree != NULL)
     {
-        return NULL;
+        if(key < tree->key)
+        {
+            tree = tree->left;
+        }
+        else if(key > tree->key)
+        {
+            tree = tree->right;
+        }
+        else
+        {
+            return tree->value;
+        }
     }
-    else if(key < tree->key)
-    {
-        return avl_get(tree->left, key);
-    }
-    else if(key > tree->key)
-    {
-        return avl_get(tree->right, key);
-    }
-    else
-    {
-        return tree->value;
-    }
+    return NULL;
 }

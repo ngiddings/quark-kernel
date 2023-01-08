@@ -33,12 +33,28 @@ struct process_context_t
 
 void load_context(struct process_context_t *context);
 
+void *get_context_pc(struct process_context_t *context);
+
 void set_context_pc(struct process_context_t *context, void *pc);
+
+void *get_context_stack(struct process_context_t *context);
 
 void set_context_stack(struct process_context_t *context, void *stack);
 
 void set_context_flags(struct process_context_t *context, unsigned long flags);
 
 void set_context_return(struct process_context_t *context, unsigned long value);
+
+void *context_stack_push(struct process_context_t *context, unsigned long value);
+
+void *context_stack_push_struct(struct process_context_t *context, void *data, unsigned long size);
+
+void *context_stack_pop(struct process_context_t *context, void *value);
+
+void *context_stack_pop_struct(struct process_context_t *context, void *value, unsigned long size);
+
+void context_call_func(struct process_context_t *context, void *func_ptr, void *ret_ptr, int argc, ...);
+
+void context_cleanup_func(struct process_context_t *context, int argc);
 
 #endif

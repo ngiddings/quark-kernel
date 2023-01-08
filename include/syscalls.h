@@ -1,14 +1,8 @@
 #pragma once
 
+#include "types/syscallarg.h"
 #include <stdbool.h>
 #include <stddef.h>
-
-typedef union
-{
-    long signed_int;
-    unsigned long unsigned_int;
-    void *ptr;
-} syscall_arg_t;
 
 typedef size_t (*syscall_ptr_0_t)();
 

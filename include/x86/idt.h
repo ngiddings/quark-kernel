@@ -32,11 +32,11 @@ enum interrupt_code_t
 
 enum isr_type_t
 {
-    INTERRPUT_TASK32 = 5,
-    INTERRPUT_TRAP32 = 15,
-    INTERRPUT_INT32 = 14,
-    INTERRPUT_TRAP16 = 7,
-    INTERRPUT_INT16 = 6
+    INTERRUPT_TASK32 = 5,
+    INTERRUPT_TRAP32 = 15,
+    INTERRUPT_INT32 = 14,
+    INTERRUPT_TRAP16 = 7,
+    INTERRUPT_INT16 = 6
 };
 
 void initialize_gdt();

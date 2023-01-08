@@ -107,9 +107,12 @@ void *read_multiboot_table_entry(struct boot_info_t *boot_info, void *table)
             boot_info->modules[boot_info->module_count].start = ((struct multiboot2_module_t*) table)->start;
             boot_info->modules[boot_info->module_count].end = ((struct multiboot2_module_t*) table)->end;
             strcpy(boot_info->modules[boot_info->module_count].str, &((struct multiboot2_module_t*) table)->str);
+            unsigned long size = ((struct multiboot2_module_t*) table)->end - ((struct multiboot2_module_t*) table)->start;
+            size += 4095;
+            size &= ~4095;
             insert_region(&boot_info->map, 
                 ((struct multiboot2_module_t*) table)->start, 
-                ((struct multiboot2_module_t*) table)->end - ((struct multiboot2_module_t*) table)->start, 
+                size, 
                 M_UNAVAILABLE);
             boot_info->module_count++;
         }

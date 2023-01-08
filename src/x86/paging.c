@@ -2,6 +2,7 @@
 #include "string.h"
 
 #include <stddef.h>
+#include <stdint.h>
 
 struct page_table_entry_t
 {

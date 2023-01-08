@@ -10,7 +10,7 @@ You will need:
 
 To build the kernel for the x86 platform, run:
 - `autoreconf -i`
-- `./configure --host=i686-elf CFLAGS=-ffreestanding LDFLAGS=-nostdlib`
+- `./configure --host=i686-elf --prefix=<your_desired_prefix> --bindir=$(prefix)/apps CFLAGS=-ffreestanding LDFLAGS=-nostdlib`
 - `make`
 
 To generate a bootable disk image, run:

@@ -23,7 +23,7 @@ void queue_construct(struct queue_t *queue)
     queue->count = 0;
 }
 
-enum error_t queue_insert(struct queue_t *queue, void *ptr)
+error_t queue_insert(struct queue_t *queue, void *ptr)
 {
     struct queue_node_t *node = kmalloc(sizeof(struct queue_node_t));
     if(node == NULL)

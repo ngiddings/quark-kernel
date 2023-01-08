@@ -3,6 +3,7 @@
 #include "memmap.h"
 #include "platform/paging.h"
 #include "types/physaddr.h"
+#include "types/status.h"
 #include <stddef.h>
 
 extern const size_t page_size;
@@ -71,7 +72,7 @@ void *page_map_end();
  * @param block_size 
  * @return enum error_t 
  */
-enum error_t initialize_page_map(struct memory_map_t *map, void *base, size_t memory_size, unsigned long block_size);
+error_t initialize_page_map(struct memory_map_t *map, void *base, size_t memory_size, unsigned long block_size);
 
 /**
  * @brief Create a new top-level page table and map the kernel in it.

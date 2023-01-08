@@ -27,5 +27,5 @@ AC_TYPE_UINT8_T
 
 AM_CONDITIONAL([x86], [test $host = i686-elf])
 
-AC_CONFIG_FILES([Makefile src/Makefile])
+AC_CONFIG_FILES([Makefile src/Makefile include/Makefile])
 AC_OUTPUT
