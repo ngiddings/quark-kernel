@@ -6,7 +6,7 @@
 
 void x86_startup(void *multiboot_info)
 {
-    struct memory_region_t map_array[24];
+    memory_region_t map_array[24];
     char bootloader_name[64];
     char kernel_parameters[64];
     struct boot_info_t boot_info = {

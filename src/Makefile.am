@@ -1,8 +1,8 @@
 bin_PROGRAMS = quark-kernel
-quark_kernel_SOURCES = kernel.c mmgr.c priorityqueue.c stdio.c string.c elf.c syscalls.c heap.c memmap.c avltree.c queue.c math.c
-quark_kernel_LDADD = -lgcc
-quark_kernel_CFLAGS = -I$(top_srcdir)/include -ffreestanding -mgeneral-regs-only -O0 -Wall -ggdb
-quark_kernel_LDFLAGS = -nostdlib
+quark_kernel_SOURCES = kernel.c mmgr.c priorityqueue.c stdio.c string.c elf.c syscalls.c heap.c avltree.c queue.c math.c
+quark_kernel_LDADD = -lgcc -lmalloc
+quark_kernel_CFLAGS = -I$(top_srcdir)/include -I$(prefix)/include -ffreestanding -mgeneral-regs-only -O0 -Wall -ggdb
+quark_kernel_LDFLAGS = -L$(prefix)/lib -nostdlib
 
 if x86
 quark_kernel_SOURCES += x86/paging.c \

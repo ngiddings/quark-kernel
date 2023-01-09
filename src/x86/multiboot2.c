@@ -84,7 +84,9 @@ void *read_multiboot_table_entry(struct boot_info_t *boot_info, void *table)
     case MB_END_TAG:
         return NULL;
     case MB_MEMORY_INFO:
-        boot_info->memory_size = ((struct multiboot2_memory_info_t*) table)->high_memory * 1024;
+        boot_info->memory_size = 
+            ((struct multiboot2_memory_info_t*) table)->high_memory * 1024 
+            + ((struct multiboot2_memory_info_t*) table)->low_memory * 1024;
         break;
     case MB_MEMORY_MAP: ;
         unsigned int tag_size = ((struct multiboot2_memory_map_t*) table)->size - 16;
@@ -96,7 +98,7 @@ void *read_multiboot_table_entry(struct boot_info_t *boot_info, void *table)
                 entry->type == MB_AVAILABLE ? M_AVAILABLE 
                 : (entry->type == MB_DEFECTIVE ? M_DEFECTIVE
                 : M_UNAVAILABLE);
-            insert_region(&boot_info->map, entry->base, entry->length, entry_type);
+            memmap_insert_region(&boot_info->map, entry->base, entry->length, entry_type);
             entry = (struct multiboot2_map_entry_t*) ((void*) entry + entry_size);
             tag_size -= entry_size;
         }
@@ -110,7 +112,7 @@ void *read_multiboot_table_entry(struct boot_info_t *boot_info, void *table)
             unsigned long size = ((struct multiboot2_module_t*) table)->end - ((struct multiboot2_module_t*) table)->start;
             size += 4095;
             size &= ~4095;
-            insert_region(&boot_info->map, 
+            memmap_insert_region(&boot_info->map, 
                 ((struct multiboot2_module_t*) table)->start, 
                 size, 
                 M_UNAVAILABLE);
