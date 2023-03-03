@@ -37,6 +37,7 @@ SECTIONS
 	_kernel_pstart = PHYSICAL_BASE;
 	_kernel_pend = PHYSICAL_BASE + (4096 * IMAGE_SIZE);
 	_kernel_start = VIRTUAL_BASE;
+	_kernel_tend = VIRTUAL_BASE + SIZEOF(.text) + SIZEOF(.rodata);
 	_kernel_end = VIRTUAL_BASE + (4096 * IMAGE_SIZE);
 	_entry_paddr = _start - _kernel_start + _kernel_pstart;
 }
