@@ -133,9 +133,9 @@ int set_pte_type(void *page, int level, int flags)
     struct page_table_entry_t *entry = get_pte_pointer(page, level);
     if(entry != NULL)
     {
-        entry->present = PAGE_PRESENT ? 1 : 0;
-        entry->rw = PAGE_RW ? 1 : 0;
-        entry->usermode = PAGE_USERMODE ? 1 : 0;
+        entry->present = (flags & PAGE_PRESENT) ? 1 : 0;
+        entry->rw = (flags & PAGE_RW) ? 1 : 0;
+        entry->usermode = (flags & PAGE_USERMODE) ? 1 : 0;
         return 0;
     }
     else
