@@ -30,6 +30,11 @@ void kernel_initialize(struct boot_info_t *boot_info)
         printf("%i\t\t\t%08x\t\t%u\n", boot_info->map.array[i].type, boot_info->map.array[i].location, boot_info->map.array[i].size);
     }
 
+    for(void *p = &_kernel_start; p < (void*)&_kernel_tend; p += page_size)
+    {
+        set_pte_type(p, page_table_levels - 1, PAGE_PRESENT);
+    }
+
     memmap_insert_region(&boot_info->map, (physaddr_t)&_kernel_pstart, (physaddr_t)&_kernel_pend - (physaddr_t)&_kernel_pstart, M_UNAVAILABLE);
     if(initialize_page_map(&boot_info->map, (physaddr_t*)&_kernel_end, boot_info->memory_size, page_size))
     {
