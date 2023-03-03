@@ -33,7 +33,16 @@ int free_pages(physaddr_t location, size_t size)
 
 physaddr_t reserve_page()
 {
-    return reserve_region(&page_map, page_size);
+    unsigned long loc = reserve_region(&page_map, page_size);
+    if(loc == NOMEM)
+    {
+        return ENOMEM;
+    }
+    else
+    {
+        printf("Reserved %08x\n", loc);
+        return loc;
+    }
 }
 
 int free_page(physaddr_t location)
@@ -64,13 +73,15 @@ error_t initialize_page_map(memory_map_t *map, void *base, size_t memory_size, u
     memory_size = 1 << llog2(memory_size);
 
     page_map.block_size = block_size;
+    page_map.block_bits = 1;
+    page_map.offset = 0;
     page_map.cache = page_map_cache;
     page_map.cache_capacity = MAX_CACHE_SIZE;
     page_map.bitmap = (unsigned long*) base;
 
     /* Allocate pages for bitmap */
     int pages_mapped = 0;
-    int pages_needed = (bitmap_size(map, block_size) + page_size - 1) / page_size;
+    int pages_needed = (bitmap_size(map, block_size, 1) + page_size - 1) / page_size;
     for(int i = 0; i < map->size && (pages_mapped < pages_needed); i++)
     {
         if(map->array[i].type != M_AVAILABLE)
@@ -107,7 +118,7 @@ error_t initialize_page_map(memory_map_t *map, void *base, size_t memory_size, u
         }
     }
  
-    if(initialize_physical_heap(&page_map, map))
+    if(initialize_heap(&page_map, map, NULL))
     {
         return ENOMEM;
     }
