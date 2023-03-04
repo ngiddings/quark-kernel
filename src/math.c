@@ -32,7 +32,7 @@ int llog2(unsigned long x)
 #elif (defined __GNUC__) && (__SIZEOF_LONG__ == 8)
     if(x <= 1)
         return 0;
-    return 64 - __buildin_clzl(x - 1);
+    return 64 - __builtin_clzl(x - 1);
 #elif __SIZEOF_LONG__ == 8
     static const int table[64] = {
         0, 58, 1, 59, 47, 53, 2, 60, 39, 48, 27, 54, 33, 42, 3, 61,

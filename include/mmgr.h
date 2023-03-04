@@ -1,9 +1,9 @@
 #pragma once
 
-#include "memmap.h"
 #include "platform/paging.h"
 #include "types/physaddr.h"
 #include "types/status.h"
+#include "libmalloc/memmap.h"
 #include <stddef.h>
 
 extern const size_t page_size;
@@ -14,7 +14,7 @@ extern const size_t page_size;
  * @param size 
  * @return physaddr_t 
  */
-physaddr_t reserve_region(size_t size);
+physaddr_t reserve_pages(size_t size);
 
 /**
  * @brief 
@@ -23,7 +23,7 @@ physaddr_t reserve_region(size_t size);
  * @param size 
  * @return int 
  */
-int free_region(physaddr_t location, size_t size);
+int free_pages(physaddr_t location, size_t size);
 
 /**
  * @brief Reserves a single page and returns its physical address.
@@ -72,7 +72,7 @@ void *page_map_end();
  * @param block_size 
  * @return enum error_t 
  */
-error_t initialize_page_map(struct memory_map_t *map, void *base, size_t memory_size, unsigned long block_size);
+error_t initialize_page_map(memory_map_t *map, void *base, size_t memory_size, unsigned long block_size);
 
 /**
  * @brief Create a new top-level page table and map the kernel in it.

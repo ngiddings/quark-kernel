@@ -1,6 +1,8 @@
 #include "platform/putc.h"
 #include "mmgr.h"
 
+#define COM1 0x3f8
+
 enum vga_color_t {
 	VGA_COLOR_BLACK = 0,
 	VGA_COLOR_BLUE = 1,
@@ -36,18 +38,53 @@ const unsigned int line_count = 25;
 
 struct cell_t screen[4096 / sizeof(struct cell_t)] __attribute__ ((aligned (4096)));
 
+static inline void outb(short port, char c)
+{
+    asm volatile(
+        "outb %1, %0"
+        :: "d" (port), "a" (c)
+    );
+}
+
+static inline char inb(short port)
+{
+    char c;
+    asm volatile(
+        "inb %1, %0"
+        : "=r" (c) 
+        : "d" (port)
+    );
+    return c;
+}
+
 int initialize_screen()
 {
-    return map_page(screen, 0x000B8000, PAGE_RW);
+    int status = ENONE;
+    if(status = map_page(screen, 0x000B8000, PAGE_RW))
+    {
+        return status;
+    }
+    outb(COM1 + 1, 0x00);
+    outb(COM1 + 3, 0x80);
+    outb(COM1 + 0, 0x03);
+    outb(COM1 + 1, 0x00);
+    outb(COM1 + 3, 0x03);
+    outb(COM1 + 2, 0xC7);
+    outb(COM1 + 4, 0x0B);
+    outb(COM1 + 4, 0x0F);
+    return status;
 }
 
 int putchar(int c)
 {
+    while((inb(COM1 + 5) & 0x20) == 0);
+    outb(COM1, c);
     switch(c)
     {
     case '\n':
         cursor += line_width;
         cursor -= cursor % line_width;
+        outb(COM1, '\r');
         break;
     case '\t':
         cursor += tab_width;

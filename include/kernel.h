@@ -1,13 +1,13 @@
 #pragma once
 
 #include "avltree.h"
-#include "memmap.h"
 #include "priorityqueue.h"
 #include "queue.h"
 #include "mmgr.h"
 #include "syscalls.h"
 #include "types/syscallid.h"
 #include "types/status.h"
+#include <libmalloc/memmap.h>
 #include <stddef.h>
 
 #define MAX_SYSCALL_ID 256
@@ -38,7 +38,7 @@ struct boot_info_t
     char *bootloader;
     char *parameters;
     size_t memory_size;
-    struct memory_map_t map;
+    memory_map_t map;
     size_t module_count;
     struct module_t modules[module_limit];
 };
