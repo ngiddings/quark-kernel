@@ -4,17 +4,17 @@
 #include "platform/paging.h"
 #include "types/status.h"
 #include "stdio.h"
-#include <libmalloc/bitmap_alloc.h>
+#include <libmalloc/buddy_alloc.h>
 #include <stdint.h>
 #include <stdbool.h>
 
-#define MAX_CACHE_SIZE 32
+#define AVAIL_LIST_SIZE 20
 
-bitmap_heap_descriptor_t page_map;
+buddy_descriptor_t page_alloc;
 
 physaddr_t reserve_pages(size_t size)
 {
-    unsigned long location = reserve_region(&page_map, size);
+    unsigned long location = buddy_reserve(&page_alloc, size);
     if(location != NOMEM)
     {
         return location;
@@ -27,61 +27,60 @@ physaddr_t reserve_pages(size_t size)
 
 int free_pages(physaddr_t location, size_t size)
 {
-    free_region(&page_map, location, size);
+    buddy_free_size(&page_alloc, location, size);
     return ENONE;
 }
 
 physaddr_t reserve_page()
 {
-    unsigned long loc = reserve_region(&page_map, page_size);
+    unsigned long loc = buddy_reserve(&page_alloc, page_size);
+    printf("Reserved %08x\n", loc);
     if(loc == NOMEM)
     {
         return ENOMEM;
     }
     else
     {
-        printf("Reserved %08x\n", loc);
         return loc;
     }
 }
 
 int free_page(physaddr_t location)
 {
-    free_region(&page_map, location, page_size);
+    buddy_free_size(&page_alloc, location, page_size);
     return ENONE;
 }
 
 size_t free_page_count()
 {
-    return page_map.free_block_count;
+    return page_alloc.free_block_count;
 }
 
 void *page_map_base()
 {
-    return (void*)page_map.bitmap;
+    return (void*)page_alloc.block_map;
 }
 
 void *page_map_end()
 {
-    return (void*)page_map.bitmap + page_map.bitmap_size;
+    return (void*)page_alloc.block_map + page_alloc.block_map_size;
 }
 
 error_t initialize_page_map(memory_map_t *map, void *base, size_t memory_size, unsigned long block_size)
 {
-    static unsigned long page_map_cache[MAX_CACHE_SIZE];
+    static unsigned long avail_list[AVAIL_LIST_SIZE];
     // Round memory_size up to nearest power of 2
     memory_size = 1 << llog2(memory_size);
 
-    page_map.block_size = block_size;
-    page_map.block_bits = 1;
-    page_map.offset = 0;
-    page_map.cache = page_map_cache;
-    page_map.cache_capacity = MAX_CACHE_SIZE;
-    page_map.bitmap = (unsigned long*) base;
+    page_alloc.avail = avail_list;
+    page_alloc.block_map = (buddy_block_t*) base;
+    page_alloc.block_size = block_size;
+    page_alloc.mmap = NULL;
+    page_alloc.offset = 0;
 
     /* Allocate pages for bitmap */
     int pages_mapped = 0;
-    int pages_needed = (bitmap_size(map, block_size, 1) + page_size - 1) / page_size;
+    int pages_needed = (buddy_map_size(map, block_size) + page_size - 1) / page_size;
     for(int i = 0; i < map->size && (pages_mapped < pages_needed); i++)
     {
         if(map->array[i].type != M_AVAILABLE)
@@ -92,7 +91,7 @@ error_t initialize_page_map(memory_map_t *map, void *base, size_t memory_size, u
         physaddr_t region_end = map->array[i].location + map->array[i].size;
         while(location + page_size <= region_end && (pages_mapped < pages_needed))
         {
-            void *page = (void*)page_map.bitmap + pages_mapped * page_size;
+            void *page = (void*)page_alloc.block_map + pages_mapped * page_size;
             for(int level = 0; level < page_table_levels; level++)
             {
                 if(!(get_pte_type(page, level) & PAGE_PRESENT))
@@ -117,13 +116,30 @@ error_t initialize_page_map(memory_map_t *map, void *base, size_t memory_size, u
             continue;
         }
     }
+
+    printf("Initializing page allocator...\n");
  
-    if(initialize_heap(&page_map, map, NULL))
+    if(buddy_alloc_init(&page_alloc, map))
     {
         return ENOMEM;
     }
     else
     {
+        printf("page_alloc = {\n\t" \ 
+            "avail = %08x\n\t" \
+            "block_map = %08x\n\t" \
+            "block_map_size = %08x\n\t" \
+            "max_kval = %i\n\t" \
+            "block_size = %i\n\t" \
+            "offset = %08x\n\t" \
+            "free_block_count = %08x\n}",
+            page_alloc.avail, 
+            page_alloc.block_map, 
+            page_alloc.block_map_size, 
+            page_alloc.max_kval, 
+            page_alloc.block_size, 
+            page_alloc.offset, 
+            page_alloc.free_block_count);
         return ENONE;
     }
 }

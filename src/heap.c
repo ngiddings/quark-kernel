@@ -1,34 +1,24 @@
 #include <stdbool.h>
-#include <libmalloc/bitmap_alloc.h>
+#include <libmalloc/list_alloc.h>
 #include "heap.h"
 #include "mmgr.h"
 #include "math.h"
 #include "stdio.h"
 #include "types/status.h"
 
-bitmap_heap_descriptor_t system_heap;
-
-static int map_block(void *location, unsigned long size)
-{
-    for(int n = 0; n < size; n += page_size)
-    {
-        if(!(page_type(location + n) & PAGE_PRESENT))
-        {
-            int status = map_page(location + n, reserve_page(), PAGE_RW);
-            if(status)
-            {
-                return status;
-            }
-        }
-    }
-    return ENONE;
-}
+list_alloc_descriptor_t system_heap;
 
 static int mmap_callback(void *location, unsigned long size)
 {
+    size += (unsigned long)location % page_size;
+    location -= (unsigned long)location % page_size;
     int status = ENONE;
     for(unsigned long i = 0; i < size; i += page_size)
     {
+        if((page_type(location + i) & PAGE_PRESENT))
+        {
+            continue;
+        }
         physaddr_t frame = reserve_page();
         if(frame == ENOMEM)
         {
@@ -42,44 +32,44 @@ static int mmap_callback(void *location, unsigned long size)
     return status;
 }
 
-int kminit(void *base, void* start, size_t heap_size, size_t block_size)
+int kminit(void *base, size_t heap_size)
 {
-    static unsigned long heap_cache[16];
-    system_heap.bitmap = NULL;
-    system_heap.cache = heap_cache;
-    system_heap.cache_capacity = 16;
-    system_heap.block_bits = 4;
-    system_heap.block_size = block_size;
-    system_heap.offset = (unsigned long)base;
     memory_region_t map_array[8];
     memory_map_t map = {
         .array = map_array,
         .capacity = 8,
         .size = 0
     };
-    memmap_insert_region(&map, 0, heap_size, M_AVAILABLE);
-    memmap_insert_region(&map, 0, start - base, M_UNAVAILABLE);
-    return initialize_heap(&system_heap, &map, mmap_callback);
+    memmap_insert_region(&map, base, heap_size, M_AVAILABLE);
+    for(void *p = base; p < (base + heap_size); p += page_size)
+    {
+        if((page_type(p) & PAGE_PRESENT))
+        {
+            continue;
+        }
+        physaddr_t frame = reserve_page();
+        if(frame == ENOMEM || map_page(p, frame, PAGE_RW))
+        {
+            return ENOMEM;
+        }
+    }
+    return list_alloc_init(&system_heap, &map);
 }
 
 void *kmalloc(size_t size)
 {
-    unsigned long loc = reserve_region(&system_heap, size);
-    if(loc == NOMEM)
-    {
-        return NULL;
-    }
-    else if(map_block((void*)loc, size))
+    void *p = list_alloc_reserve(&system_heap, size);
+    if(p == NOMEM)
     {
         return NULL;
     }
     else
     {
-        return (void*)loc;
+        return p;
     }
 }
 
 void kfree(void *ptr)
 {
-    free_region(&system_heap, (unsigned long)ptr, 0);
+    list_alloc_free(&system_heap, (unsigned long)ptr);
 }

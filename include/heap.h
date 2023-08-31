@@ -8,13 +8,11 @@
  * This function contructs the heap's internal tables, allocating pages as needed
  * to do so.
  * 
- * @param page_stack Pointer to the page stack descriptor
  * @param base Base location of the heap to contruct
  * @param heap_size Total size in bytes of the heap
- * @param block_size Size in bytes of a single unit of allocation
  * @return a status code
  */
-int kminit(void *base, void* start, size_t heap_size, size_t block_size);
+int kminit(void *base, size_t heap_size);
 
 /**
  * @brief Allocates a block of memory containing at least `size` bytes.

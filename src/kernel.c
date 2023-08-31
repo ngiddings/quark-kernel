@@ -41,7 +41,9 @@ void kernel_initialize(struct boot_info_t *boot_info)
         panic("Failed to initialize page allocator.");
     }
 
-    if(kminit(&_kernel_start, page_map_end(), 0xFFC00000 - (size_t)&_kernel_start, 64))
+    printf("End of page map: %08x\n", page_map_end);
+
+    if(kminit(page_map_end(), 0xFFC00000 - (size_t)page_map_end()))
     {
         panic("Failed to initialize heap.");
     }
