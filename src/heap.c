@@ -41,18 +41,34 @@ int kminit(void *base, size_t heap_size)
         .size = 0
     };
     memmap_insert_region(&map, base, heap_size, M_AVAILABLE);
-    for(void *p = base; p < (base + heap_size); p += page_size)
+    physaddr_t phys_addr = reserve_pages(heap_size);
+    if(phys_addr == ENOMEM)
+    {
+        return ENOMEM;
+    }
+    for(unsigned long off = 0; off < heap_size; off += page_size)
+    {
+        if((page_type(base + off) & PAGE_PRESENT))
+        {
+            continue;
+        }
+        else if(map_page(base + off, phys_addr + off, PAGE_RW))
+        {
+            return ENOMEM;
+        }
+    }
+    /*for(void *p = base; p < (base + heap_size); p += page_size)
     {
         if((page_type(p) & PAGE_PRESENT))
         {
             continue;
         }
-        physaddr_t frame = reserve_page();
+        //physaddr_t frame = reserve_page();
         if(frame == ENOMEM || map_page(p, frame, PAGE_RW))
         {
             return ENOMEM;
         }
-    }
+    }*/
     return list_alloc_init(&system_heap, &map);
 }
 

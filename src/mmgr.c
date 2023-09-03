@@ -15,6 +15,7 @@ buddy_descriptor_t page_alloc;
 physaddr_t reserve_pages(size_t size)
 {
     unsigned long location = buddy_reserve(&page_alloc, size);
+    printf("Reserved  >=%08x pages at %08x\n", size, location);
     if(location != NOMEM)
     {
         return location;
@@ -116,8 +117,6 @@ error_t initialize_page_map(memory_map_t *map, void *base, size_t memory_size, u
             continue;
         }
     }
-
-    printf("Initializing page allocator...\n");
  
     if(buddy_alloc_init(&page_alloc, map))
     {
@@ -125,21 +124,6 @@ error_t initialize_page_map(memory_map_t *map, void *base, size_t memory_size, u
     }
     else
     {
-        printf("page_alloc = {\n\t" \ 
-            "avail = %08x\n\t" \
-            "block_map = %08x\n\t" \
-            "block_map_size = %08x\n\t" \
-            "max_kval = %i\n\t" \
-            "block_size = %i\n\t" \
-            "offset = %08x\n\t" \
-            "free_block_count = %08x\n}",
-            page_alloc.avail, 
-            page_alloc.block_map, 
-            page_alloc.block_map_size, 
-            page_alloc.max_kval, 
-            page_alloc.block_size, 
-            page_alloc.offset, 
-            page_alloc.free_block_count);
         return ENONE;
     }
 }
