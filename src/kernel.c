@@ -41,8 +41,6 @@ void kernel_initialize(struct boot_info_t *boot_info)
         panic("Failed to initialize page allocator.");
     }
 
-    printf("End of page map: %08x\n", page_map_end);
-
     if(kminit(page_map_end(), 0xFFC00000 - (size_t)page_map_end()))
     {
         panic("Failed to initialize heap.");
@@ -60,6 +58,8 @@ void kernel_initialize(struct boot_info_t *boot_info)
     set_syscall(SYSCALL_TEST, 1, 0, test_syscall);
     set_syscall(SYSCALL_MMAP, 3, 0, mmap);
     set_syscall(SYSCALL_MUNMAP, 2, 0, munmap);
+    set_syscall(SYSCALL_MAP_PHYS, 3, 0, map_physical);
+    set_syscall(SYSCALL_UNMAP_PHYS, 2, 0, unmap_physical);
     set_syscall(SYSCALL_SEND, 3, 0, send);
     set_syscall(SYSCALL_RECEIVE, 2, 0, receive);
     set_syscall(SYSCALL_OPEN_PORT, 1, 0, open_port);

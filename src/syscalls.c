@@ -88,6 +88,39 @@ size_t munmap(syscall_arg_t arg_location, syscall_arg_t arg_length)
     return status;
 }
 
+size_t map_physical(syscall_arg_t arg_addr, syscall_arg_t arg_phys_addr, syscall_arg_t arg_length)
+{
+    void *addr = arg_addr.ptr;
+    physaddr_t frame = arg_phys_addr.unsigned_int;
+    unsigned long length = arg_length.unsigned_int;
+    int status = ENONE;
+    for(unsigned long offset = 0; offset < length; offset += page_size)
+    {
+        status = map_page(addr + offset, frame + offset, PAGE_USERMODE | PAGE_RW);
+        if(status)
+        {
+            break;
+        }
+    }
+    return status;
+}
+
+size_t unmap_physical(syscall_arg_t arg_addr, syscall_arg_t arg_length)
+{
+    void *addr = arg_addr.ptr;
+    unsigned long length = arg_length.unsigned_int;
+    int status = ENONE;
+    for(unsigned long offset = 0; offset < length; offset += page_size)
+    {
+        status = unmap_page(addr + offset);
+        if(status != ENONE)
+        {
+            break;
+        }
+    }
+    return status;
+}
+
 size_t terminate_self()
 {
     return kernel_terminate_process(kernel_current_pid());

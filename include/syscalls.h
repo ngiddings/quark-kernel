@@ -32,6 +32,10 @@ size_t mmap(syscall_arg_t location, syscall_arg_t length, syscall_arg_t flags);
 
 size_t munmap(syscall_arg_t location, syscall_arg_t length);
 
+size_t map_physical(syscall_arg_t arg_addr, syscall_arg_t arg_phys_addr, syscall_arg_t arg_length);
+
+size_t unmap_physical(syscall_arg_t arg_addr, syscall_arg_t arg_length);
+
 size_t terminate_self();
 
 size_t send(syscall_arg_t recipient, syscall_arg_t message, syscall_arg_t flags);
