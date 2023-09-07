@@ -5,10 +5,13 @@
 struct avltree_t *avl_new(int key, void *value)
 {
     struct avltree_t *new_tree = kmalloc(sizeof(struct avltree_t));
-    new_tree->height = 1;
-    new_tree->left = new_tree->right = NULL;
-    new_tree->key = key;
-    new_tree->value = value;
+    if(new_tree != NULL)
+    {
+        new_tree->height = 1;
+        new_tree->left = new_tree->right = NULL;
+        new_tree->key = key;
+        new_tree->value = value;
+    }
     return new_tree;
 }
 
