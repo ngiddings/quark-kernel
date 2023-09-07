@@ -20,7 +20,7 @@ isr_syscall:
     mov %ax, %es
     mov %ax, %fs
     mov %ax, %gs
-    call do_syscall
+    call kernel_do_syscall
     mov %ebp, %esp
     mov $0x23, %cx
     mov %cx, %ds

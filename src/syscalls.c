@@ -11,7 +11,7 @@ size_t test_syscall(syscall_arg_t str)
     return 17;
 }
 
-size_t mmap(syscall_arg_t arg_location, syscall_arg_t arg_length, syscall_arg_t arg_flags)
+size_t syscall_mmap(syscall_arg_t arg_location, syscall_arg_t arg_length, syscall_arg_t arg_flags)
 {
     unsigned long location = arg_location.unsigned_int;
     unsigned long length = arg_length.unsigned_int;
@@ -42,7 +42,7 @@ size_t mmap(syscall_arg_t arg_location, syscall_arg_t arg_length, syscall_arg_t 
             status = map_page((void*)(location + n), frame, PAGE_USERMODE | PAGE_RW);
             if(status != ENONE && free_page(frame) != ENONE)
             {
-                panic("critical error reached during mmap.");
+                kernel_panic("critical error reached during mmap.");
             }
             n += page_size;
         }
@@ -51,14 +51,14 @@ size_t mmap(syscall_arg_t arg_location, syscall_arg_t arg_length, syscall_arg_t 
             break;
         }
     }
-    if(status != ENONE && munmap(arg_location, arg_length) != ENONE)
+    if(status != ENONE && syscall_munmap(arg_location, arg_length) != ENONE)
     {
-        panic("critical error reached during mmap.");
+        kernel_panic("critical error reached during mmap.");
     }
     return status;
 }
 
-size_t munmap(syscall_arg_t arg_location, syscall_arg_t arg_length)
+size_t syscall_munmap(syscall_arg_t arg_location, syscall_arg_t arg_length)
 {
     unsigned long location = arg_location.unsigned_int;
     unsigned long length = arg_length.unsigned_int;
@@ -88,7 +88,7 @@ size_t munmap(syscall_arg_t arg_location, syscall_arg_t arg_length)
     return status;
 }
 
-size_t map_physical(syscall_arg_t arg_addr, syscall_arg_t arg_phys_addr, syscall_arg_t arg_length)
+size_t syscall_map_physical(syscall_arg_t arg_addr, syscall_arg_t arg_phys_addr, syscall_arg_t arg_length)
 {
     void *addr = arg_addr.ptr;
     physaddr_t frame = arg_phys_addr.unsigned_int;
@@ -105,7 +105,7 @@ size_t map_physical(syscall_arg_t arg_addr, syscall_arg_t arg_phys_addr, syscall
     return status;
 }
 
-size_t unmap_physical(syscall_arg_t arg_addr, syscall_arg_t arg_length)
+size_t syscall_unmap_physical(syscall_arg_t arg_addr, syscall_arg_t arg_length)
 {
     void *addr = arg_addr.ptr;
     unsigned long length = arg_length.unsigned_int;
@@ -121,12 +121,12 @@ size_t unmap_physical(syscall_arg_t arg_addr, syscall_arg_t arg_length)
     return status;
 }
 
-size_t terminate_self()
+size_t syscall_terminate_self()
 {
     return kernel_terminate_process(kernel_current_pid());
 }
 
-size_t send(syscall_arg_t recipient, syscall_arg_t message, syscall_arg_t flags)
+size_t syscall_send(syscall_arg_t recipient, syscall_arg_t message, syscall_arg_t flags)
 {
     unsigned long op_type = flags.unsigned_int & IO_OP;
     unsigned long dest_type = flags.unsigned_int & IO_RECIPIENT_TYPE;
@@ -154,17 +154,17 @@ size_t send(syscall_arg_t recipient, syscall_arg_t message, syscall_arg_t flags)
     }
 }
 
-size_t receive(syscall_arg_t buffer, syscall_arg_t flags)
+size_t syscall_receive(syscall_arg_t buffer, syscall_arg_t flags)
 {
-    return receive_message(buffer.ptr, flags.unsigned_int);
+    return kernel_receive_message(buffer.ptr, flags.unsigned_int);
 }
 
-size_t open_port(syscall_arg_t id)
+size_t syscall_open_port(syscall_arg_t id)
 {
     return kernel_create_port(id.unsigned_int);
 }
 
-size_t close_port(syscall_arg_t id)
+size_t syscall_close_port(syscall_arg_t id)
 {
     return kernel_remove_port(id.unsigned_int);
 }

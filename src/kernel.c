@@ -13,7 +13,71 @@
 #include "types/status.h"
 #include "types/syscallid.h"
 
-struct kernel_t kernel;
+struct shared_object_t
+{
+    physaddr_t phys_addr;
+    size_t size;
+    unsigned long access_flags;
+    unsigned long refcount;
+    struct avltree_t *users;
+};
+
+struct shared_object_mapping_t
+{
+    void *virt_addr;
+};
+
+enum process_state_t
+{
+    PROCESS_ACTIVE,
+    PROCESS_REQUESTING,
+    PROCESS_SENDING
+};
+
+struct process_t
+{
+    pid_t pid;
+    int priority;
+    physaddr_t page_table;
+    struct avltree_t *shared_objects;
+    enum process_state_t state;
+    struct queue_t sending_queue;
+    struct queue_t message_queue;
+    struct message_t *message_buffer;
+    struct process_context_t *ctx;
+};
+
+struct port_t
+{
+    unsigned long id;
+    pid_t owner_pid;
+};
+
+struct signal_action_t
+{
+    pid_t pid;
+    signal_handler_t func_ptr;
+    void (*trampoline_ptr)();
+    void *userdata;
+};
+
+struct signal_context_t
+{
+    unsigned long signal_id;
+};
+
+struct kernel_t
+{
+    struct syscall_t syscall_table[MAX_SYSCALL_ID];
+    struct priority_queue_t priority_queue;
+    struct avltree_t *interrupt_handlers;
+    struct avltree_t *port_table;
+    struct avltree_t *object_table;
+    struct avltree_t *process_table;
+    struct process_t *active_process;
+    pid_t next_pid;
+    oid_t next_oid;
+} kernel;
 
 void kernel_initialize(struct boot_info_t *boot_info)
 {
@@ -38,50 +102,52 @@ void kernel_initialize(struct boot_info_t *boot_info)
     memmap_insert_region(&boot_info->map, (physaddr_t)&_kernel_pstart, (physaddr_t)&_kernel_pend - (physaddr_t)&_kernel_pstart, M_UNAVAILABLE);
     if(initialize_page_map(&boot_info->map, (physaddr_t*)&_kernel_end, boot_info->memory_size, page_size))
     {
-        panic("Failed to initialize page allocator.");
+        kernel_panic("Failed to initialize page allocator.");
     }
 
     if(kminit(page_map_end(), 0xFFC00000 - (size_t)page_map_end()))
     {
-        panic("Failed to initialize heap.");
+        kernel_panic("Failed to initialize heap.");
     }
     
     kernel.active_process = NULL;
     kernel.next_pid = 1;
+    kernel.next_oid = 1;
     kernel.process_table = NULL;
     kernel.port_table = NULL;
+    kernel.object_table = NULL;
     if(construct_priority_queue(&kernel.priority_queue, 512) != ENONE)
     {
-        panic("Failed to construct priority queue.");
+        kernel_panic("Failed to construct priority queue.");
     }
     memset(kernel.syscall_table, 0, sizeof(struct syscall_t) * MAX_SYSCALL_ID);
-    set_syscall(SYSCALL_TEST, 1, 0, test_syscall);
-    set_syscall(SYSCALL_MMAP, 3, 0, mmap);
-    set_syscall(SYSCALL_MUNMAP, 2, 0, munmap);
-    set_syscall(SYSCALL_MAP_PHYS, 3, 0, map_physical);
-    set_syscall(SYSCALL_UNMAP_PHYS, 2, 0, unmap_physical);
-    set_syscall(SYSCALL_SEND, 3, 0, send);
-    set_syscall(SYSCALL_RECEIVE, 2, 0, receive);
-    set_syscall(SYSCALL_OPEN_PORT, 1, 0, open_port);
-    set_syscall(SYSCALL_CLOSE_PORT, 1, 0, close_port);
+    kernel_set_syscall(SYSCALL_TEST, 1, 0, test_syscall);
+    kernel_set_syscall(SYSCALL_MMAP, 3, 0, syscall_mmap);
+    kernel_set_syscall(SYSCALL_MUNMAP, 2, 0, syscall_munmap);
+    kernel_set_syscall(SYSCALL_MAP_PHYS, 3, 0, syscall_map_physical);
+    kernel_set_syscall(SYSCALL_UNMAP_PHYS, 2, 0, syscall_unmap_physical);
+    kernel_set_syscall(SYSCALL_SEND, 3, 0, syscall_send);
+    kernel_set_syscall(SYSCALL_RECEIVE, 2, 0, syscall_receive);
+    kernel_set_syscall(SYSCALL_OPEN_PORT, 1, 0, syscall_open_port);
+    kernel_set_syscall(SYSCALL_CLOSE_PORT, 1, 0, syscall_close_port);
     for(int i = 0; i < boot_info->module_count; i++)
     {
         if(kernel_load_module(&boot_info->modules[i]) != ENONE)
         {
-            panic("Failed to load modules.");
+            kernel_panic("Failed to load modules.");
         }
     }
 
     if(initialize_interrupts() != ENONE)
     {
-        panic("Failed to initialize interrupts.");
+        kernel_panic("Failed to initialize interrupts.");
     }
 
     irq_enable();
     load_context(kernel_advance_scheduler());
 }
 
-error_t set_syscall(int id, int arg_count, int pid, void *func_ptr)
+error_t kernel_set_syscall(int id, int arg_count, pid_t pid, void *func_ptr)
 {
     if(id < 0 || id > MAX_SYSCALL_ID)
     {
@@ -110,7 +176,7 @@ error_t set_syscall(int id, int arg_count, int pid, void *func_ptr)
     return ENONE;
 }
 
-size_t do_syscall(syscall_id_t id, syscall_arg_t arg1, syscall_arg_t arg2, syscall_arg_t arg3, void *pc, void *stack, unsigned long flags)
+size_t kernel_do_syscall(syscall_id_t id, syscall_arg_t arg1, syscall_arg_t arg2, syscall_arg_t arg3, void *pc, void *stack, unsigned long flags)
 {
     if(id < 0 || id > MAX_SYSCALL_ID)
     {
@@ -162,7 +228,7 @@ error_t kernel_load_module(struct module_t *module)
 {
     physaddr_t module_address_space = create_address_space();
     if(module_address_space == ENOMEM) {
-        panic("failed to create address space for module: out of memory");
+        kernel_panic("failed to create address space for module: out of memory");
     }
     paging_load_address_space(module_address_space);
     void *const load_base = (void*)0x80000000;
@@ -173,9 +239,9 @@ error_t kernel_load_module(struct module_t *module)
         switch(status)
         {
         case ENOMEM:
-            panic("ran out of memory while mapping module");
+            kernel_panic("ran out of memory while mapping module");
         case EOUTOFBOUNDS:
-            panic("got out-of-bounds error while mapping module");
+            kernel_panic("got out-of-bounds error while mapping module");
         }
         load_offset += page_size;
 
@@ -184,9 +250,9 @@ error_t kernel_load_module(struct module_t *module)
     switch(status)
     {
     case ENOMEM:
-        panic("ran out of memory while reading ELF file");
+        kernel_panic("ran out of memory while reading ELF file");
     case EOUTOFBOUNDS:
-        panic("got out-of-bounds error while reading ELF file");
+        kernel_panic("got out-of-bounds error while reading ELF file");
     }
     void *module_entry = ((struct elf_file_header_t*)load_base)->entry;
     printf("loaded module with entry point %08x\n", (unsigned int)module_entry);
@@ -197,9 +263,9 @@ error_t kernel_load_module(struct module_t *module)
         switch(status)
         {
         case ENOMEM:
-            panic("ran out of memory while unmapping module");
+            kernel_panic("ran out of memory while unmapping module");
         case EOUTOFBOUNDS:
-            panic("got out-of-bounds error while unmapping module");
+            kernel_panic("got out-of-bounds error while unmapping module");
         }
         load_offset += page_size;
     }
@@ -213,7 +279,7 @@ error_t kernel_load_module(struct module_t *module)
     }
 }
 
-unsigned long kernel_current_pid()
+pid_t kernel_current_pid()
 {
     if(kernel.active_process == NULL)
     {
@@ -237,7 +303,7 @@ struct process_context_t *kernel_current_context()
     }  
 }
 
-unsigned long kernel_spawn_process(void *program_entry, int priority, physaddr_t address_space)
+pid_t kernel_spawn_process(void *program_entry, int priority, physaddr_t address_space)
 {
     struct process_t *new_process = (struct process_t*) kmalloc(sizeof(struct process_t));
     if(new_process == NULL)
@@ -286,12 +352,12 @@ struct process_context_t *kernel_advance_scheduler()
         printf("entering process %08x cr3=%08x ctx=%08x sched=%i.\n", kernel.active_process->pid, kernel.active_process->page_table, kernel.active_process->ctx, kernel.priority_queue.size);
         return kernel.active_process->ctx;
     }
-    panic("no processes available to enter!");
+    kernel_panic("no processes available to enter!");
 }
 
-error_t kernel_terminate_process(size_t process_id)
+error_t kernel_terminate_process(pid_t pid)
 {
-    struct process_t *process = avl_get(kernel.process_table, process_id);
+    struct process_t *process = avl_get(kernel.process_table, pid);
     if(process == NULL)
     {
         return EDOESNTEXIST;
@@ -300,7 +366,7 @@ error_t kernel_terminate_process(size_t process_id)
     {
         kernel.active_process = NULL;
     }
-    kernel.process_table = avl_remove(kernel.process_table, process_id);
+    kernel.process_table = avl_remove(kernel.process_table, pid);
     priorityqueue_remove(&kernel.priority_queue, process);
     for(struct message_t *msg = queue_get_next(&process->message_queue); msg != NULL; msg = queue_get_next(&process->message_queue))
     {
@@ -361,7 +427,7 @@ error_t kernel_remove_port(unsigned long id)
     return ENONE;
 }
 
-unsigned long kernel_get_port_owner(unsigned long id)
+pid_t kernel_get_port_owner(unsigned long id)
 {
     struct port_t *port = avl_get(kernel.port_table, id);
     if(port == NULL)
@@ -423,7 +489,7 @@ error_t kernel_queue_message(unsigned long recipient, struct message_t *message)
     }
 }
 
-int receive_message(struct message_t *buffer, int flags)
+int kernel_receive_message(struct message_t *buffer, int flags)
 {
     if(kernel.active_process->message_queue.count > 0)
     {
@@ -513,13 +579,49 @@ error_t kernel_signal_return()
     context_stack_pop_struct(kernel.active_process->ctx, kernel.active_process->ctx, sizeof(*kernel.active_process->ctx));
     if(kernel.active_process->state == PROCESS_REQUESTING)
     {
-        receive_message(kernel.active_process->message_buffer, 0);
+        kernel_receive_message(kernel.active_process->message_buffer, 0);
         load_context(kernel.active_process->ctx);
     }
     return ENONE;
 }
 
-void panic(const char *message)
+error_t kernel_create_object(size_t size, unsigned long flags, oid_t *id)
+{
+    physaddr_t phys_addr = reserve_pages(size);
+    if(phys_addr == ENOMEM)
+    {
+        return ENOMEM;
+    }
+
+    struct shared_object_t *obj = kmalloc(sizeof(struct shared_object_t));
+    if(obj == NULL)
+    {
+        free_pages(phys_addr, size);
+        return ENOMEM;
+    }
+
+    obj->phys_addr = phys_addr;
+    obj->size = size;
+    obj->access_flags = flags;
+    obj->refcount = 0;
+    obj->users = NULL;
+    kernel.object_table = avl_insert(kernel.object_table, kernel.next_oid, obj);
+    *id = kernel.next_oid;
+    kernel.next_oid++;
+    return ENONE;
+}
+
+error_t kernel_attach_object(oid_t id, void *virt_addr)
+{
+    
+}
+
+error_t kernel_release_object(oid_t id)
+{
+
+}
+
+void kernel_panic(const char *message)
 {
     printf("panic: %s", message);
     asm("cli");

@@ -4,6 +4,9 @@ quark_kernel_LDADD = -lgcc -lmalloc
 quark_kernel_CFLAGS = -I$(top_srcdir)/include -I$(prefix)/include -ffreestanding -mgeneral-regs-only -O0 -Wall -ggdb
 quark_kernel_LDFLAGS = -L$(prefix)/lib -nostdlib
 
+lib_LIBRARIES = libquark-syscall.a
+libquark_syscall_a_CFLAGS = -I$(top_srcdir)/include -I$(prefix)/include -ffreestanding -mgeneral-regs-only -O0 -Wall -ggdb
+
 if x86
 quark_kernel_SOURCES += x86/paging.c \
                         x86/putc.c \
@@ -17,7 +20,8 @@ quark_kernel_SOURCES += x86/paging.c \
                         x86/load_context.S \
                         x86/preempt.S \
                         x86/quark_x86.c \
-                        x86/entry.S 
+                        x86/entry.S
+libquark_syscall_a_SOURCES = x86/do_syscall.S
 quark_kernel_LDFLAGS += -T x86/linker.ld
 quark_kernel_DEPENDENCIES = x86/linker.ld
 endif
