@@ -57,18 +57,6 @@ int kminit(void *base, size_t heap_size)
             return ENOMEM;
         }
     }
-    /*for(void *p = base; p < (base + heap_size); p += page_size)
-    {
-        if((page_type(p) & PAGE_PRESENT))
-        {
-            continue;
-        }
-        //physaddr_t frame = reserve_page();
-        if(frame == ENOMEM || map_page(p, frame, PAGE_RW))
-        {
-            return ENOMEM;
-        }
-    }*/
     return list_alloc_init(&system_heap, &map);
 }
 
