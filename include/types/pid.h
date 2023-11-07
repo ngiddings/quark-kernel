@@ -1,5 +1,5 @@
-#ifndef _QUARK_PID_H
-#define _QUARK_PID_H
+#ifndef QUARK_PID_H
+#define QUARK_PID_H
 
 typedef unsigned int pid_t;
 
