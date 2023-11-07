@@ -1,5 +1,5 @@
-#ifndef _QUARK_ERROR_H
-#define _QUARK_ERROR_H
+#ifndef QUARK_ERROR_H
+#define QUARK_ERROR_H
 
 typedef enum
 {
