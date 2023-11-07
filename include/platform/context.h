@@ -33,6 +33,8 @@ struct process_context_t
 
 void load_context(struct process_context_t *context);
 
+void context_construct(struct process_context_t *context);
+
 void *get_context_pc(struct process_context_t *context);
 
 void set_context_pc(struct process_context_t *context, void *pc);

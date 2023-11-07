@@ -6,6 +6,12 @@
 #include "system.h"
 #include <stdarg.h>
 
+void context_construct(struct process_context_t *context)
+{
+    memset(context, 0, sizeof(struct process_context_t));
+    context->flags = DEFAULT_FLAGS;
+}
+
 void *get_context_pc(struct process_context_t *context)
 {
     return (void*) context->eip;
