@@ -1,5 +1,5 @@
-#ifndef _QUARK_SYSCALLARG_H
-#define _QUARK_SYSCALLARG_H
+#ifndef QUARK_SYSCALLARG_H
+#define QUARK_SYSCALLARG_H
 
 typedef union
 {
