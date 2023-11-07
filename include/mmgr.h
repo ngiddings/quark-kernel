@@ -23,7 +23,7 @@ physaddr_t reserve_pages(size_t size);
  * @param size 
  * @return int 
  */
-int free_pages(physaddr_t location, size_t size);
+size_t free_pages(physaddr_t location);
 
 /**
  * @brief Reserves a single page and returns its physical address.
@@ -93,6 +93,27 @@ physaddr_t create_address_space();
 physaddr_t current_address_space();
 
 /**
+ * @brief Maps a region in virtual memory with the specified flags.
+ * 
+ * @param page
+ * @param frame
+ * @param size
+ * @param flags
+ */
+error_t map_region(void *page, physaddr_t frame, size_t size, int flags);
+
+/**
+ * @brief Unmaps a region in virtual memory. All pages which contain some part
+ * of the region specified will be unmapped.
+ * 
+ * @param page
+ * @param size
+ * 
+ * @returns The physical address of the first page that was unmapped
+ */
+physaddr_t unmap_region(void *page, size_t size);
+
+/**
  * @brief Maps a single page with the specified flags.
  * 
  * @param page 
@@ -100,7 +121,7 @@ physaddr_t current_address_space();
  * @param flags 
  * @return int 
  */
-int map_page(void *page, physaddr_t frame, int flags);
+error_t map_page(void *page, physaddr_t frame, int flags);
 
 /**
  * @brief Unmaps a single page, returning the physical address of the frame it

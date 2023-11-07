@@ -32,7 +32,7 @@ struct page_table_entry_t *page_tables = (struct page_table_entry_t *)0xFFC00000
 
 struct page_table_entry_t *page_directory = (struct page_table_entry_t *)0xFFFFF000;
 
-struct page_table_entry_t *get_pte_pointer(void *page, int level)
+struct page_table_entry_t *get_pte_pointer_chk(void *page, int level)
 {
     unsigned int directory_index = (unsigned int)page >> 22;
     struct page_table_entry_t *entry = NULL;
@@ -46,6 +46,22 @@ struct page_table_entry_t *get_pte_pointer(void *page, int level)
         entry = &page_tables[page_index];
     }
     return entry;
+}
+
+struct page_table_entry_t *get_pte_pointer(void *page, int level)
+{
+    if(level == 0)
+    {
+        return &page_directory[(unsigned int)page >> 22];
+    }
+    else if(level == 1)
+    {
+        return &page_tables[(unsigned int)page >> page_bits];
+    }
+    else
+    {
+        return NULL;
+    }
 }
 
 int start_paging(void *linear_addr, physaddr_t start, physaddr_t end, uint32_t *directory, uint32_t *table, uint32_t *identity_table)
@@ -114,7 +130,7 @@ void paging_load_address_space(physaddr_t table)
 
 int get_pte_type(void *page, int level)
 {
-    struct page_table_entry_t *entry = get_pte_pointer(page, level);
+    struct page_table_entry_t *entry = get_pte_pointer_chk(page, level);
     if(entry != NULL)
     {
         int flags = (entry->present ? PAGE_PRESENT | PAGE_EXECUTABLE : 0)
@@ -146,7 +162,7 @@ int set_pte_type(void *page, int level, int flags)
 
 physaddr_t get_pte_address(void *page, int level)
 {
-    struct page_table_entry_t *entry = get_pte_pointer(page, level);
+    struct page_table_entry_t *entry = get_pte_pointer_chk(page, level);
     if(entry != NULL)
     {
         return entry->physical_address << page_bits | ((size_t)page & 0xFFF);

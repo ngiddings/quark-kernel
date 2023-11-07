@@ -26,10 +26,9 @@ physaddr_t reserve_pages(size_t size)
     }
 }
 
-int free_pages(physaddr_t location, size_t size)
+size_t free_pages(physaddr_t location)
 {
-    buddy_free_size(&page_alloc, location, size);
-    return ENONE;
+    return buddy_free(&page_alloc, location);
 }
 
 physaddr_t reserve_page()
@@ -151,25 +150,34 @@ physaddr_t current_address_space()
     return paging_current_address_space();
 }
 
-int map_page(void *page, physaddr_t frame, int flags)
+error_t map_region(void *page, physaddr_t frame, size_t size, int flags)
+{
+    if(frame % page_size != 0)
+    {
+        return EINVALIDARG;
+    }
+    for(size_t p = 0; p < size; p += page_size)
+    {
+        set_pte(page + p, page_table_levels - 1, PAGE_PRESENT | flags, frame + p);
+    }
+    return ENONE;
+}
+
+physaddr_t unmap_region(void *page, size_t size)
+{
+    physaddr_t frame = get_pte_address(page, page_table_levels - 1);
+    for(size_t p = 0; p < size; p += page_size)
+    {
+        set_pte(page + p, page_table_levels - 1, 0, 0);
+    }
+    return frame;
+}
+
+error_t map_page(void *page, physaddr_t frame, int flags)
 {
     if (frame % page_size != 0)
     {
         return EINVALIDARG;
-    }
-    for(int level = 0; level < page_table_levels - 1; level++)
-    {
-        int present = get_pte_type(page, level) & PAGE_PRESENT;
-        if(present == 0)
-        {
-            physaddr_t new_table = reserve_page();
-            if(new_table == ENOMEM)
-            {
-                return ENOMEM;
-            }
-            set_pte(page, level, PAGE_PRESENT | PAGE_USERMODE | PAGE_RW, new_table);
-            wipe_page_table(page, level + 1);
-        }
     }
     set_pte(page, page_table_levels - 1, PAGE_PRESENT | flags, frame);
     return ENONE;
