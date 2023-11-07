@@ -199,3 +199,12 @@ void *avl_get(struct avltree_t *tree, int key)
     }
     return NULL;
 }
+
+void *avl_clear(struct avltree_t *tree)
+{
+    while(tree != NULL)
+    {
+        tree = avl_remove(tree, tree->key);
+    }
+    return tree;
+}

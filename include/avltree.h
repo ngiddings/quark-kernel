@@ -39,3 +39,11 @@ struct avltree_t *avl_remove(struct avltree_t *tree, int key);
  * @return void* 
  */
 void *avl_get(struct avltree_t *tree, int key);
+
+/**
+ * @brief Removes every node present on the given tree.
+ * 
+ * @param tree
+ * @return NULL
+ */
+void *avl_clear(struct avltree_t *tree);
