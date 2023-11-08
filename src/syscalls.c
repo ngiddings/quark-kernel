@@ -5,13 +5,16 @@
 #include "platform/context.h"
 #include "types/status.h"
 
-size_t test_syscall(syscall_arg_t str)
+syscallret_t test_syscall(syscall_arg_t str)
 {
-    printf("%s", (char*)str.ptr);
+    if(str.ptr != NULL)
+    {
+        printf("%s", (char*)str.ptr);
+    }
     return 17;
 }
 
-size_t syscall_mmap(syscall_arg_t arg_location, syscall_arg_t arg_length, syscall_arg_t arg_flags)
+syscallret_t syscall_map_anon(syscall_arg_t arg_location, syscall_arg_t arg_length, syscall_arg_t arg_flags)
 {
     unsigned long location = arg_location.unsigned_int;
     unsigned long length = arg_length.unsigned_int;
@@ -24,6 +27,7 @@ size_t syscall_mmap(syscall_arg_t arg_location, syscall_arg_t arg_length, syscal
     {
         return ENULLPTR;
     }
+    
     for(size_t i = 0; i < length; i += page_size)
     {
         if(page_type((void*)(location + i)) & PAGE_PRESENT)
@@ -31,34 +35,22 @@ size_t syscall_mmap(syscall_arg_t arg_location, syscall_arg_t arg_length, syscal
             return EEXISTS;
         }
     }
-    size_t n = 0;
-    int status = ENONE;
-    while(n < length && status == ENONE)
+
+    physaddr_t frame = reserve_pages(length);
+    if(frame % page_size != 0)
     {
-        physaddr_t frame = reserve_page();
-        status = frame % page_size;
-        if(status == ENONE)
-        {
-            status = map_page((void*)(location + n), frame, PAGE_USERMODE | PAGE_RW);
-            if(status != ENONE && free_page(frame) != ENONE)
-            {
-                kernel_panic("critical error reached during mmap.");
-            }
-            n += page_size;
-        }
-        else
-        {
-            break;
-        }
+        return frame % page_size;
     }
-    if(status != ENONE && syscall_munmap(arg_location, arg_length) != ENONE)
+
+    error_t status = map_region(location, frame, length, PAGE_USERMODE | PAGE_RW);
+    if(status != ENONE)
     {
-        kernel_panic("critical error reached during mmap.");
+        kernel_panic("Unexpected failure to map virtual memory.");
     }
-    return status;
+    return ENONE;
 }
 
-size_t syscall_munmap(syscall_arg_t arg_location, syscall_arg_t arg_length)
+syscallret_t syscall_unmap_anon(syscall_arg_t arg_location, syscall_arg_t arg_length)
 {
     unsigned long location = arg_location.unsigned_int;
     unsigned long length = arg_length.unsigned_int;
@@ -88,7 +80,7 @@ size_t syscall_munmap(syscall_arg_t arg_location, syscall_arg_t arg_length)
     return status;
 }
 
-size_t syscall_map_physical(syscall_arg_t arg_addr, syscall_arg_t arg_phys_addr, syscall_arg_t arg_length)
+syscallret_t syscall_map_physical(syscall_arg_t arg_addr, syscall_arg_t arg_phys_addr, syscall_arg_t arg_length)
 {
     void *addr = arg_addr.ptr;
     physaddr_t frame = arg_phys_addr.unsigned_int;
@@ -105,7 +97,7 @@ size_t syscall_map_physical(syscall_arg_t arg_addr, syscall_arg_t arg_phys_addr,
     return status;
 }
 
-size_t syscall_unmap_physical(syscall_arg_t arg_addr, syscall_arg_t arg_length)
+syscallret_t syscall_unmap_physical(syscall_arg_t arg_addr, syscall_arg_t arg_length)
 {
     void *addr = arg_addr.ptr;
     unsigned long length = arg_length.unsigned_int;
@@ -121,12 +113,17 @@ size_t syscall_unmap_physical(syscall_arg_t arg_addr, syscall_arg_t arg_length)
     return status;
 }
 
-size_t syscall_terminate_self()
+syscallret_t syscall_open_port(syscall_arg_t id)
 {
-    return kernel_terminate_process(kernel_current_pid());
+    return kernel_create_port(id.unsigned_int);
 }
 
-size_t syscall_send(syscall_arg_t recipient, syscall_arg_t message, syscall_arg_t flags)
+syscallret_t syscall_close_port(syscall_arg_t id)
+{
+    return kernel_remove_port(id.unsigned_int);
+}
+
+syscallret_t syscall_send_pid(syscall_arg_t recipient, syscall_arg_t message, syscall_arg_t flags)
 {
     unsigned long op_type = flags.unsigned_int & IO_OP;
     unsigned long dest_type = flags.unsigned_int & IO_RECIPIENT_TYPE;
@@ -154,17 +151,63 @@ size_t syscall_send(syscall_arg_t recipient, syscall_arg_t message, syscall_arg_
     }
 }
 
-size_t syscall_receive(syscall_arg_t buffer, syscall_arg_t flags)
+syscallret_t syscall_send_port(syscall_arg_t recipient, syscall_arg_t message, syscall_arg_t flags)
+{
+    return ENOSYSCALL;
+}
+
+syscallret_t syscall_receive(syscall_arg_t buffer, syscall_arg_t flags)
 {
     return kernel_receive_message(buffer.ptr, flags.unsigned_int);
 }
 
-size_t syscall_open_port(syscall_arg_t id)
+syscallret_t syscall_create_object(void *location, size_t size, int flags)
 {
-    return kernel_create_port(id.unsigned_int);
+    
+    return ENOSYSCALL;
 }
 
-size_t syscall_close_port(syscall_arg_t id)
+syscallret_t syscall_aquire_object(oid_t id, void *location)
 {
-    return kernel_remove_port(id.unsigned_int);
+    return ENOSYSCALL;
+}
+
+syscallret_t syscall_release_object(oid_t id)
+{
+    return ENOSYSCALL;
+}
+
+syscallret_t syscall_get_pid()
+{
+    return kernel_current_pid();
+}
+
+syscallret_t syscall_clone(void (*entry)(void*), void *arg, void *stack, int flags)
+{
+    return ENOSYSCALL;
+}
+
+syscallret_t syscall_signal_action(int id, struct signal_action_t *action, int flags)
+{
+    return ENOSYSCALL;
+}
+
+syscallret_t syscall_signal_return()
+{
+    return ENOSYSCALL;
+}
+
+syscallret_t syscall_signal_raise(pid_t pid, int sigid)
+{
+    return ENOSYSCALL;
+}
+
+syscallret_t syscall_intr_action(int id, struct signal_action_t *action, int flags)
+{
+    return ENOSYSCALL;
+}
+
+syscallret_t syscall_intr_return()
+{
+    return ENOSYSCALL;
 }

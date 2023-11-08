@@ -1,5 +1,5 @@
 #ifndef _QUARK_SYSCALLS_H
-#define _QUARK_SYSCALLS_S
+#define _QUARK_SYSCALLS_H
 
 #include <types/syscallarg.h>
 #include <types/syscallid.h>
@@ -26,7 +26,7 @@ static inline int mmap(void *addr, unsigned long length, long flags)
     arg1.ptr = addr;
     arg2.unsigned_int = length;
     arg3.signed_int = flags;
-    return (int) _do_syscall(SYSCALL_MMAP, arg1, arg2, arg3);
+    return (int) _do_syscall(SYSCALL_MAP_ANON, arg1, arg2, arg3);
 }
 
 static inline int munmap(void *addr, unsigned long length)
@@ -37,7 +37,7 @@ static inline int munmap(void *addr, unsigned long length)
     arg1.ptr = addr;
     arg2.unsigned_int = length;
     arg3.unsigned_int = 0UL;
-    return (int) _do_syscall(SYSCALL_MUNMAP, arg1, arg2, arg3);
+    return (int) _do_syscall(SYSCALL_UNMAP_ANON, arg1, arg2, arg3);
 }
 
 static inline int map_physical(void *addr, physaddr_t phys_addr, unsigned long length)

@@ -9,6 +9,7 @@
 #include "types/status.h"
 #include "types/pid.h"
 #include "types/oid.h"
+#include "types/sighandler.h"
 #include <libmalloc/memmap.h>
 #include <stddef.h>
 
@@ -23,8 +24,6 @@
 #define IO_PID 0 << 1
 #define IO_PORT 1 << 1
 #define IO_MAILBOX 2 << 1
-
-typedef unsigned long (*signal_handler_t)(void*, void*);
 
 struct process_context_t;
 
@@ -54,7 +53,7 @@ struct message_t
 
 void kernel_initialize(struct boot_info_t *boot_info);
 
-error_t kernel_set_syscall(int id, int arg_count, pid_t pid, void *func_ptr);
+error_t kernel_set_syscall(int id, int arg_count, void *func_ptr);
 
 size_t kernel_do_syscall(syscall_id_t id, syscall_arg_t arg1, syscall_arg_t arg2, syscall_arg_t arg3, void *pc, void *stack, unsigned long flags);
 

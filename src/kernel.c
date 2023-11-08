@@ -7,11 +7,34 @@
 #include "string.h"
 #include "config.h"
 #include "system.h"
+#include "process.h"
 #include "platform/interrupts.h"
 #include "platform/context.h"
 #include "platform/putc.h"
 #include "types/status.h"
 #include "types/syscallid.h"
+#include "types/sigaction.h"
+
+void *syscall_table[] = {
+    NULL,
+    (void*)test_syscall,
+    (void*)syscall_map_anon,
+    (void*)syscall_unmap_anon,
+    (void*)syscall_map_physical,
+    (void*)syscall_unmap_physical,
+    (void*)syscall_open_port,
+    (void*)syscall_close_port,
+    (void*)syscall_send_pid,
+    (void*)syscall_receive,
+    (void*)syscall_create_object,
+    (void*)syscall_aquire_object,
+    (void*)syscall_release_object,
+    (void*)syscall_get_pid,
+    (void*)syscall_clone,
+    (void*)syscall_signal_action,
+    (void*)syscall_signal_return,
+    (void*)syscall_signal_raise
+};
 
 struct shared_object_t
 {
@@ -24,41 +47,15 @@ struct shared_object_t
 
 struct shared_object_mapping_t
 {
-    void *virt_addr;
-};
-
-enum process_state_t
-{
-    PROCESS_ACTIVE,
-    PROCESS_REQUESTING,
-    PROCESS_SENDING
-};
-
-struct process_t
-{
     pid_t pid;
-    int priority;
-    physaddr_t page_table;
-    struct avltree_t *shared_objects;
-    enum process_state_t state;
-    struct queue_t sending_queue;
-    struct queue_t message_queue;
-    struct message_t *message_buffer;
-    struct process_context_t *ctx;
+    oid_t oid;
+    void *virt_addr;
 };
 
 struct port_t
 {
     unsigned long id;
     pid_t owner_pid;
-};
-
-struct signal_action_t
-{
-    pid_t pid;
-    signal_handler_t func_ptr;
-    void (*trampoline_ptr)();
-    void *userdata;
 };
 
 struct signal_context_t
@@ -121,15 +118,25 @@ void kernel_initialize(struct boot_info_t *boot_info)
         kernel_panic("Failed to construct priority queue.");
     }
     memset(kernel.syscall_table, 0, sizeof(struct syscall_t) * MAX_SYSCALL_ID);
-    kernel_set_syscall(SYSCALL_TEST, 1, 0, test_syscall);
-    kernel_set_syscall(SYSCALL_MMAP, 3, 0, syscall_mmap);
-    kernel_set_syscall(SYSCALL_MUNMAP, 2, 0, syscall_munmap);
-    kernel_set_syscall(SYSCALL_MAP_PHYS, 3, 0, syscall_map_physical);
-    kernel_set_syscall(SYSCALL_UNMAP_PHYS, 2, 0, syscall_unmap_physical);
-    kernel_set_syscall(SYSCALL_SEND, 3, 0, syscall_send);
-    kernel_set_syscall(SYSCALL_RECEIVE, 2, 0, syscall_receive);
-    kernel_set_syscall(SYSCALL_OPEN_PORT, 1, 0, syscall_open_port);
-    kernel_set_syscall(SYSCALL_CLOSE_PORT, 1, 0, syscall_close_port);
+    kernel_set_syscall(SYSCALL_TEST, 1, test_syscall);
+    kernel_set_syscall(SYSCALL_MAP_ANON, 3, syscall_map_anon);
+    kernel_set_syscall(SYSCALL_UNMAP_ANON, 2, syscall_unmap_anon);
+    kernel_set_syscall(SYSCALL_MAP_PHYS, 3, syscall_map_physical);
+    kernel_set_syscall(SYSCALL_UNMAP_PHYS, 2, syscall_unmap_physical);
+    kernel_set_syscall(SYSCALL_OPEN_PORT, 1, syscall_open_port);
+    kernel_set_syscall(SYSCALL_CLOSE_PORT, 1, syscall_close_port);
+    kernel_set_syscall(SYSCALL_SEND_PID, 3, syscall_send_pid);
+    kernel_set_syscall(SYSCALL_SEND_PORT, 3, syscall_send_port);
+    kernel_set_syscall(SYSCALL_RECEIVE, 2, syscall_receive);
+    kernel_set_syscall(SYSCALL_CREATE_OBJECT, 3, syscall_create_object);
+    kernel_set_syscall(SYSCALL_AQUIRE_OBJECT, 2, syscall_aquire_object);
+    kernel_set_syscall(SYSCALL_RELEASE_OBJECT, 1, syscall_release_object);
+    kernel_set_syscall(SYSCALL_GET_PID, 0, syscall_get_pid);
+    kernel_set_syscall(SYSCALL_SIGNAL_ACTION, 3, syscall_signal_action);
+    kernel_set_syscall(SYSCALL_SIGNAL_RETURN, 0, syscall_signal_return);
+    kernel_set_syscall(SYSCALL_SIGNAL_RAISE, 2, syscall_signal_raise);
+    kernel_set_syscall(SYSCALL_INTR_ACTION, 3, syscall_intr_action);
+    kernel_set_syscall(SYSCALL_INTR_RETURN, 0, syscall_intr_return);
     for(int i = 0; i < boot_info->module_count; i++)
     {
         if(kernel_load_module(&boot_info->modules[i]) != ENONE)
@@ -147,7 +154,7 @@ void kernel_initialize(struct boot_info_t *boot_info)
     load_context(kernel_advance_scheduler());
 }
 
-error_t kernel_set_syscall(int id, int arg_count, pid_t pid, void *func_ptr)
+error_t kernel_set_syscall(int id, int arg_count, void *func_ptr)
 {
     if(id < 0 || id > MAX_SYSCALL_ID)
     {
@@ -161,17 +168,12 @@ error_t kernel_set_syscall(int id, int arg_count, pid_t pid, void *func_ptr)
     {
         return EINVALIDARG;
     }
-    else if(pid != 0 && avl_get(kernel.process_table, pid) == NULL)
-    {
-        return EDOESNTEXIST;
-    }
     else if(func_ptr == NULL)
     {
         return ENULLPTR;
     }
     kernel.syscall_table[id].defined = true;
     kernel.syscall_table[id].arg_count = arg_count;
-    kernel.syscall_table[id].process_id = pid;
     kernel.syscall_table[id].func_ptr_0 = func_ptr;
     return ENONE;
 }
@@ -185,18 +187,6 @@ size_t kernel_do_syscall(syscall_id_t id, syscall_arg_t arg1, syscall_arg_t arg2
     else if(!kernel.syscall_table[id].defined)
     {
         return ENOSYSCALL;
-    }
-    bool switched_address_space = false;
-    if(kernel.syscall_table[id].process_id > 0)
-    {
-        struct process_t *callee = avl_get(kernel.process_table, kernel.syscall_table[id].process_id);
-        if(callee == NULL)
-        {
-            kernel.syscall_table[id].defined = false;
-            return ENOSYSCALL;
-        }
-        paging_load_address_space(callee->page_table);
-        switched_address_space = true;
     }
     set_context_pc(kernel.active_process->ctx, pc);
     set_context_stack(kernel.active_process->ctx, stack);
@@ -217,10 +207,6 @@ size_t kernel_do_syscall(syscall_id_t id, syscall_arg_t arg1, syscall_arg_t arg2
         result = kernel.syscall_table[id].func_ptr_3(arg1, arg2, arg3);
         break;
     }
-    if(switched_address_space)
-    {
-        paging_load_address_space(kernel.active_process->page_table);
-    }
     return result;
 }
 
@@ -232,20 +218,8 @@ error_t kernel_load_module(struct module_t *module)
     }
     paging_load_address_space(module_address_space);
     void *const load_base = (void*)0x80000000;
-    size_t load_offset = 0;
-    for(physaddr_t p = module->start & ~(page_size - 1); p < module->end; p += page_size)
-    {
-        int status = map_page(load_base + load_offset, p, PAGE_RW);
-        switch(status)
-        {
-        case ENOMEM:
-            kernel_panic("ran out of memory while mapping module");
-        case EOUTOFBOUNDS:
-            kernel_panic("got out-of-bounds error while mapping module");
-        }
-        load_offset += page_size;
-
-    }
+    physaddr_t p = module->start & ~(page_size - 1);
+    map_region(load_base, p, module->end - p, PAGE_RW);
     int status = load_program(load_base);
     switch(status)
     {
@@ -256,7 +230,7 @@ error_t kernel_load_module(struct module_t *module)
     }
     void *module_entry = ((struct elf_file_header_t*)load_base)->entry;
     printf("loaded module with entry point %08x\n", (unsigned int)module_entry);
-    load_offset = 0;
+    size_t load_offset = 0;
     for(physaddr_t p = module->start & ~(page_size - 1); p < module->end; p += page_size)
     {
         int status = unmap_page(load_base + load_offset);
@@ -305,34 +279,20 @@ struct process_context_t *kernel_current_context()
 
 pid_t kernel_spawn_process(void *program_entry, int priority, physaddr_t address_space)
 {
-    struct process_t *new_process = (struct process_t*) kmalloc(sizeof(struct process_t));
-    if(new_process == NULL)
-    {
-        return 0;
-    }
-    struct process_context_t *initial_context = kmalloc(sizeof(struct process_context_t));
-    if(initial_context == NULL)
-    {
-        return 0;
-    }
     physaddr_t stack_page = reserve_page();
     if(stack_page % page_size)
     {
         return 0;
     }
+
     map_page((void*)&_kernel_start - page_size, stack_page, PAGE_PRESENT | PAGE_USERMODE | PAGE_RW);
-    memset(initial_context, 0, sizeof(struct process_context_t));
-    set_context_pc(initial_context, program_entry);
-    set_context_flags(initial_context, DEFAULT_FLAGS);
-    set_context_stack(initial_context, &_kernel_start);
-    new_process->priority = priority;
-    new_process->pid = kernel.next_pid;
-    new_process->page_table = address_space;
-    new_process->state = PROCESS_ACTIVE;
-    new_process->message_buffer = NULL;
-    new_process->ctx = initial_context;
-    queue_construct(&new_process->sending_queue);
-    queue_construct(&new_process->message_queue);
+    struct process_t *new_process = process_construct(kernel.next_pid, &_kernel_start, program_entry, priority, address_space);
+    if(new_process == NULL)
+    {
+        free_page(stack_page);
+        return 0;
+    }
+    
     kernel.process_table = avl_insert(kernel.process_table, new_process->pid, new_process);
     priorityqueue_insert(&kernel.priority_queue, new_process, new_process->priority);
     kernel.next_pid++;
@@ -596,7 +556,7 @@ error_t kernel_create_object(size_t size, unsigned long flags, oid_t *id)
     struct shared_object_t *obj = kmalloc(sizeof(struct shared_object_t));
     if(obj == NULL)
     {
-        free_pages(phys_addr, size);
+        free_pages(phys_addr);
         return ENOMEM;
     }
 
@@ -608,6 +568,10 @@ error_t kernel_create_object(size_t size, unsigned long flags, oid_t *id)
     kernel.object_table = avl_insert(kernel.object_table, kernel.next_oid, obj);
     *id = kernel.next_oid;
     kernel.next_oid++;
+    if(kernel.next_oid <= 0)
+    {
+        kernel.next_oid = 1;
+    }
     return ENONE;
 }
 
