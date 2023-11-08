@@ -18,7 +18,18 @@ enum format_flags_t
 
 };
 
-char *itoa(unsigned int n, unsigned int base, unsigned int width)
+typedef enum
+{
+    LOG_PANIC,
+    LOG_ERROR,
+    LOG_WARNING,
+    LOG_INFO,
+    LOG_DEBUG
+} log_levels_t;
+
+
+
+static char *itoa(unsigned int n, unsigned int base, unsigned int width)
 {
     if (base < 2 || base > 16)
     {
