@@ -3,13 +3,13 @@
 
 #include "types/physaddr.h"
 
-typedef struct addressspace_t
+typedef struct address_space_t
 {
     physaddr_t page_table;
     int refcount;
-} addressspace_t;
+} address_space_t;
 
-addressspace_t *addressspace_construct();
+address_space_t *address_space_construct();
 
 
 

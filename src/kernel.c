@@ -212,11 +212,11 @@ size_t kernel_do_syscall(syscall_id_t id, syscall_arg_t arg1, syscall_arg_t arg2
 
 error_t kernel_load_module(struct module_t *module)
 {
-    physaddr_t module_address_space = create_address_space();
-    if(module_address_space == ENOMEM) {
+    address_space_t *module_address_space = address_space_construct();
+    if(module_address_space == NULL) {
         kernel_panic("failed to create address space for module: out of memory");
     }
-    paging_load_address_space(module_address_space);
+    paging_load_address_space(module_address_space->page_table);
     void *const load_base = (void*)0x80000000;
     physaddr_t p = module->start & ~(page_size - 1);
     map_region(load_base, p, module->end - p, PAGE_RW);
@@ -243,7 +243,7 @@ error_t kernel_load_module(struct module_t *module)
         }
         load_offset += page_size;
     }
-    if(kernel_spawn_process(module_entry, 1, current_address_space()) > 0)
+    if(kernel_spawn_process(module_entry, 1, module_address_space) > 0)
     {
         return ENONE;
     }
@@ -277,7 +277,7 @@ struct process_context_t *kernel_current_context()
     }  
 }
 
-pid_t kernel_spawn_process(void *program_entry, int priority, physaddr_t address_space)
+pid_t kernel_spawn_process(void *program_entry, int priority, address_space_t *address_space)
 {
     physaddr_t stack_page = reserve_page();
     if(stack_page % page_size)
@@ -308,8 +308,8 @@ struct process_context_t *kernel_advance_scheduler()
     kernel.active_process = priorityqueue_extract_min(&kernel.priority_queue);
     if(kernel.active_process != NULL)
     {
-        paging_load_address_space(kernel.active_process->page_table);
-        printf("entering process %08x cr3=%08x ctx=%08x sched=%i.\n", kernel.active_process->pid, kernel.active_process->page_table, kernel.active_process->ctx, kernel.priority_queue.size);
+        paging_load_address_space(kernel.active_process->address_space->page_table);
+        printf("entering process %08x cr3=%08x ctx=%08x sched=%i.\n", kernel.active_process->pid, kernel.active_process->address_space->page_table, kernel.active_process->ctx, kernel.priority_queue.size);
         return kernel.active_process->ctx;
     }
     kernel_panic("no processes available to enter!");
@@ -413,9 +413,9 @@ error_t kernel_send_message(unsigned long recipient, struct message_t *message)
         struct message_t kernel_buffer;
         memcpy(&kernel_buffer, message, sizeof(struct message_t));
         kernel_buffer.sender = kernel.active_process->pid;
-        paging_load_address_space(dest->page_table);
+        paging_load_address_space(dest->address_space->page_table);
         memcpy(dest->message_buffer, &kernel_buffer, sizeof(struct message_t));
-        paging_load_address_space(kernel.active_process->page_table);
+        paging_load_address_space(kernel.active_process->address_space->page_table);
         dest->message_buffer = NULL;
         dest->state = PROCESS_ACTIVE;
         set_context_return(dest->ctx, ENONE);
@@ -512,7 +512,7 @@ error_t kernel_execute_interrupt_handler(unsigned long interrupt)
         return EDOESNTEXIST;
     }
 
-    paging_load_address_space(process->page_table);
+    paging_load_address_space(process->address_space->page_table);
 
     struct signal_context_t siginfo = {
         .signal_id = interrupt
@@ -527,7 +527,7 @@ error_t kernel_execute_interrupt_handler(unsigned long interrupt)
         priorityqueue_insert(&kernel.priority_queue, process, process->priority);
     }
 
-    paging_load_address_space(kernel.active_process->page_table);
+    paging_load_address_space(kernel.active_process->address_space->page_table);
 
     return ENONE;
 }

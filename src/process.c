@@ -3,7 +3,7 @@
 #include "platform/context.h"
 #include "string.h"
 
-process_t *process_construct(pid_t pid, void *entry, void *stack, int priority, physaddr_t address_space)
+process_t *process_construct(pid_t pid, void *entry, void *stack, int priority, address_space_t *address_space)
 {
     process_t *new_process = (process_t*) kmalloc(sizeof(process_t));
     if(new_process == NULL) 
@@ -14,7 +14,13 @@ process_t *process_construct(pid_t pid, void *entry, void *stack, int priority, 
     struct process_context_t *initial_context = kmalloc(sizeof(struct process_context_t));
     if(initial_context == NULL)
     {
-        return 0;
+        return NULL;
+    }
+
+    if(address_space == NULL 
+        && (address_space = address_space_construct()) == NULL)
+    {
+        return NULL;
     }
 
     context_construct(initial_context);
@@ -22,7 +28,8 @@ process_t *process_construct(pid_t pid, void *entry, void *stack, int priority, 
     set_context_stack(initial_context, stack);
     new_process->priority = priority;
     new_process->pid = pid;
-    new_process->page_table = address_space;
+    new_process->address_space = address_space;
+    new_process->address_space->refcount++;
     new_process->state = PROCESS_ACTIVE;
     new_process->message_buffer = NULL;
     new_process->ctx = initial_context;

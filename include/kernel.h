@@ -5,6 +5,7 @@
 #include "queue.h"
 #include "mmgr.h"
 #include "syscalls.h"
+#include "addressspace.h"
 #include "types/syscallid.h"
 #include "types/status.h"
 #include "types/pid.h"
@@ -65,7 +66,7 @@ struct process_context_t *kernel_current_context();
 
 error_t kernel_store_active_context(struct process_context_t *context);
 
-pid_t kernel_spawn_process(void *program_entry, int priority, physaddr_t address_space);
+pid_t kernel_spawn_process(void *program_entry, int priority, address_space_t *address_space);
 
 struct process_context_t *kernel_advance_scheduler();
 

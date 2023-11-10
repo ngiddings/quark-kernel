@@ -2,9 +2,9 @@
 #include "heap.h"
 #include "mmgr.h"
 
-addressspace_t *addressspace_construct()
+address_space_t *address_space_construct()
 {
-    addressspace_t *as = kmalloc(sizeof(addressspace_t));
+    address_space_t *as = kmalloc(sizeof(address_space_t));
     if(as == NULL)
     {
         return NULL;

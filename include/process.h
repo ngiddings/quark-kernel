@@ -5,6 +5,7 @@
 #include "types/physaddr.h"
 #include "types/status.h"
 #include "queue.h"
+#include "addressspace.h"
 
 typedef enum process_state_t
 {
@@ -17,7 +18,7 @@ typedef struct process_t
 {
     pid_t pid;
     int priority;
-    physaddr_t page_table;
+    address_space_t *address_space;
     struct avltree_t *shared_objects;
     process_state_t state;
     struct queue_t sending_queue;
@@ -26,8 +27,6 @@ typedef struct process_t
     struct process_context_t *ctx;
 } process_t;
 
-process_t *process_construct(pid_t pid, void *entry, void *stack, int priority, physaddr_t address_space);
-
-error_t process_call_func(process_t *process, void *func, void *ret, int argc, ...);
+process_t *process_construct(pid_t pid, void *entry, void *stack, int priority, address_space_t *address_space);
 
 #endif
