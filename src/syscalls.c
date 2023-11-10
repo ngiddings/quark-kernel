@@ -5,7 +5,7 @@
 #include "platform/context.h"
 #include "types/status.h"
 
-syscallret_t test_syscall(syscall_arg_t str)
+int test_syscall(syscall_arg_t str)
 {
     if(str.ptr != NULL)
     {
@@ -14,7 +14,7 @@ syscallret_t test_syscall(syscall_arg_t str)
     return 17;
 }
 
-syscallret_t syscall_map_anon(syscall_arg_t arg_location, syscall_arg_t arg_length, syscall_arg_t arg_flags)
+int syscall_map_anon(syscall_arg_t arg_location, syscall_arg_t arg_length, syscall_arg_t arg_flags)
 {
     unsigned long location = arg_location.unsigned_int;
     unsigned long length = arg_length.unsigned_int;
@@ -50,7 +50,7 @@ syscallret_t syscall_map_anon(syscall_arg_t arg_location, syscall_arg_t arg_leng
     return ENONE;
 }
 
-syscallret_t syscall_unmap_anon(syscall_arg_t arg_location, syscall_arg_t arg_length)
+int syscall_unmap_anon(syscall_arg_t arg_location, syscall_arg_t arg_length)
 {
     unsigned long location = arg_location.unsigned_int;
     unsigned long length = arg_length.unsigned_int;
@@ -80,7 +80,7 @@ syscallret_t syscall_unmap_anon(syscall_arg_t arg_location, syscall_arg_t arg_le
     return status;
 }
 
-syscallret_t syscall_map_physical(syscall_arg_t arg_addr, syscall_arg_t arg_phys_addr, syscall_arg_t arg_length)
+int syscall_map_physical(syscall_arg_t arg_addr, syscall_arg_t arg_phys_addr, syscall_arg_t arg_length)
 {
     void *addr = arg_addr.ptr;
     physaddr_t frame = arg_phys_addr.unsigned_int;
@@ -97,7 +97,7 @@ syscallret_t syscall_map_physical(syscall_arg_t arg_addr, syscall_arg_t arg_phys
     return status;
 }
 
-syscallret_t syscall_unmap_physical(syscall_arg_t arg_addr, syscall_arg_t arg_length)
+int syscall_unmap_physical(syscall_arg_t arg_addr, syscall_arg_t arg_length)
 {
     void *addr = arg_addr.ptr;
     unsigned long length = arg_length.unsigned_int;
@@ -113,17 +113,17 @@ syscallret_t syscall_unmap_physical(syscall_arg_t arg_addr, syscall_arg_t arg_le
     return status;
 }
 
-syscallret_t syscall_open_port(syscall_arg_t id)
+int syscall_open_port(syscall_arg_t id)
 {
     return kernel_create_port(id.unsigned_int);
 }
 
-syscallret_t syscall_close_port(syscall_arg_t id)
+int syscall_close_port(syscall_arg_t id)
 {
     return kernel_remove_port(id.unsigned_int);
 }
 
-syscallret_t syscall_send_pid(syscall_arg_t recipient, syscall_arg_t message, syscall_arg_t flags)
+int syscall_send_pid(syscall_arg_t recipient, syscall_arg_t message, syscall_arg_t flags)
 {
     unsigned long op_type = flags.unsigned_int & IO_OP;
     unsigned long dest_type = flags.unsigned_int & IO_RECIPIENT_TYPE;
@@ -151,63 +151,63 @@ syscallret_t syscall_send_pid(syscall_arg_t recipient, syscall_arg_t message, sy
     }
 }
 
-syscallret_t syscall_send_port(syscall_arg_t recipient, syscall_arg_t message, syscall_arg_t flags)
+int syscall_send_port(syscall_arg_t recipient, syscall_arg_t message, syscall_arg_t flags)
 {
     return ENOSYSCALL;
 }
 
-syscallret_t syscall_receive(syscall_arg_t buffer, syscall_arg_t flags)
+int syscall_receive(syscall_arg_t buffer, syscall_arg_t flags)
 {
     return kernel_receive_message(buffer.ptr, flags.unsigned_int);
 }
 
-syscallret_t syscall_create_object(void *location, size_t size, int flags)
+int syscall_create_object(void *location, size_t size, int flags)
 {
     
     return ENOSYSCALL;
 }
 
-syscallret_t syscall_aquire_object(oid_t id, void *location)
+int syscall_aquire_object(oid_t id, void *location)
 {
     return ENOSYSCALL;
 }
 
-syscallret_t syscall_release_object(oid_t id)
+int syscall_release_object(oid_t id)
 {
     return ENOSYSCALL;
 }
 
-syscallret_t syscall_get_pid()
+int syscall_get_pid()
 {
     return kernel_current_pid();
 }
 
-syscallret_t syscall_clone(void (*entry)(void*), void *arg, void *stack, int flags)
+int syscall_clone(void (*entry)(void*), void *arg, void *stack, int flags)
 {
     return ENOSYSCALL;
 }
 
-syscallret_t syscall_signal_action(int id, struct signal_action_t *action, int flags)
+int syscall_signal_action(int id, struct signal_action_t *action, int flags)
 {
     return ENOSYSCALL;
 }
 
-syscallret_t syscall_signal_return()
+int syscall_signal_return()
 {
     return ENOSYSCALL;
 }
 
-syscallret_t syscall_signal_raise(pid_t pid, int sigid)
+int syscall_signal_raise(pid_t pid, int sigid)
 {
     return ENOSYSCALL;
 }
 
-syscallret_t syscall_intr_action(int id, struct signal_action_t *action, int flags)
+int syscall_intr_action(int id, struct signal_action_t *action, int flags)
 {
     return ENOSYSCALL;
 }
 
-syscallret_t syscall_intr_return()
+int syscall_intr_return()
 {
     return ENOSYSCALL;
 }
