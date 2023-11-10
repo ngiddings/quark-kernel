@@ -2,7 +2,8 @@
 #define QUARK_SIGACTION_H
 
 #include "types/pid.h"
-#include "types/sighandler.h"
+
+typedef unsigned long (*signal_handler_t)(void*, void*);
 
 struct signal_action_t
 {
