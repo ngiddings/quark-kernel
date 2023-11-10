@@ -31,7 +31,7 @@ static inline int kprint(const char *s)
  * @param flags 
  * @return 
  */
-static inline int map_anon(void *addr, unsigned long length, long flags)
+static inline int map_anon(void *addr, size_t length, long flags)
 {
     return _do_syscall(SYSCALL_MAP_ANON, addr, length, flags);
 }
@@ -42,7 +42,7 @@ static inline int map_anon(void *addr, unsigned long length, long flags)
  * @param length 
  * @return 
  */
-static inline int unmap_anon(void *addr, unsigned long length)
+static inline int unmap_anon(void *addr, size_t length)
 {
     return _do_syscall(SYSCALL_UNMAP_ANON, addr, length);
 }
@@ -54,7 +54,7 @@ static inline int unmap_anon(void *addr, unsigned long length)
  * @param length 
  * @return 
  */
-static inline int map_physical(void *addr, physaddr_t phys_addr, unsigned long length)
+static inline int map_physical(void *addr, physaddr_t phys_addr, size_t length)
 {
     return _do_syscall(SYSCALL_MAP_PHYS, addr, phys_addr, length);
 }
@@ -65,7 +65,7 @@ static inline int map_physical(void *addr, physaddr_t phys_addr, unsigned long l
  * @param length 
  * @return 
  */
-static inline int unmap_physical(void *addr, unsigned long length)
+static inline int unmap_physical(void *addr, size_t length)
 {
     return _do_syscall(SYSCALL_UNMAP_PHYS, addr, length);
 }
