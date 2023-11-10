@@ -1,7 +1,6 @@
 #ifndef _QUARK_SYSCALLS_H
 #define _QUARK_SYSCALLS_H
 
-#include <types/syscallarg.h>
 #include <types/syscallid.h>
 #include <types/physaddr.h>
 #include <types/pid.h>
