@@ -2,6 +2,10 @@
 #include "kernel.h"
 #include "mmgr.h"
 #include "stdio.h"
+#include "process.h"
+#include "sharedobject.h"
+#include "system.h"
+#include "heap.h"
 #include "platform/context.h"
 #include "types/status.h"
 
@@ -50,34 +54,23 @@ int syscall_map_anon(syscall_arg_t arg_location, syscall_arg_t arg_length, sysca
     return ENONE;
 }
 
-int syscall_unmap_anon(syscall_arg_t arg_location, syscall_arg_t arg_length)
+int syscall_unmap_anon(syscall_arg_t arg_location)
 {
-    unsigned long location = arg_location.unsigned_int;
-    unsigned long length = arg_length.unsigned_int;
-    if(location % page_size != 0 || length % page_size != 0)
+    void *addr = arg_location.ptr;
+    if((size_t)addr % page_size != 0)
     {
         return EINVALIDARG;
     }
-    else if(location == 0)
+    else if(addr == NULL)
     {
         return ENULLPTR;
     }
-    size_t n = 0;
-    int status = ENONE;
-    while(n < length && status == ENONE)
+    else if(addr >= _kernel_start)
     {
-        int type = page_type((void*)(location + n));
-        physaddr_t frame;
-        if(type & PAGE_PRESENT)
-        {
-            frame = unmap_page((void*)(location + n));
-            if(type & PAGE_ANON)
-            {
-                status = free_page(frame);
-            }
-        }
+        return EPERM;
     }
-    return status;
+    unmap_region(arg_location.ptr, free_pages(physical_address(arg_location.ptr)));
+    return ENONE;
 }
 
 int syscall_map_physical(syscall_arg_t arg_addr, syscall_arg_t arg_phys_addr, syscall_arg_t arg_length)
@@ -125,35 +118,80 @@ int syscall_close_port(syscall_arg_t id)
 
 int syscall_send_pid(syscall_arg_t recipient, syscall_arg_t message, syscall_arg_t flags)
 {
-    unsigned long op_type = flags.unsigned_int & IO_OP;
-    unsigned long dest_type = flags.unsigned_int & IO_RECIPIENT_TYPE;
-    if((flags.unsigned_int & ~(IO_OP | IO_RECIPIENT_TYPE)) != 0 || dest_type >= IO_MAILBOX)
+    if(message.ptr == NULL)
     {
-        printf("Invalid flags on send()\n");
-        return EINVALIDARG;
+        return ENULLPTR;
     }
-    if(dest_type == IO_PORT)
+
+    process_t *process = kernel_get_process(recipient.unsigned_int);
+    if(process == NULL)
     {
-        recipient.unsigned_int = kernel_get_port_owner(recipient.unsigned_int);
-        if(recipient.unsigned_int == 0)
-        {
-            return EDOESNTEXIST;
-        }
+        return EEXITED;
     }
-    error_t status = kernel_send_message(recipient.unsigned_int, message.ptr);
-    if(status == EBUSY/* && op_type == IO_ASYNC*/)
+
+    message_t *buffer = kmalloc(sizeof(message_t));
+    if(buffer == NULL)
     {
-        return kernel_queue_message(recipient.unsigned_int, message.ptr);
+        return ENOMEM;
+    }
+    memcpy(buffer, message.ptr, sizeof(message_t));
+    buffer->sender = kernel_current_pid();
+
+    address_space_switch(process->address_space);
+    int status = process_queue_message(process, buffer);
+    address_space_switch(kernel_get_active_process()->address_space);
+    if(status == ENOMEM)
+    {
+        kfree(buffer);
+        kernel_terminate_process(recipient.unsigned_int);
+        return EEXITED;
     }
     else
     {
-        return status;
+        return ENONE;
     }
 }
 
 int syscall_send_port(syscall_arg_t recipient, syscall_arg_t message, syscall_arg_t flags)
 {
-    return ENOSYSCALL;
+    if(message.ptr == NULL)
+    {
+        return ENULLPTR;
+    }
+
+    pid_t recipient_pid = kernel_get_port_owner(recipient.unsigned_int);
+    if(recipient_pid == 0)
+    {
+        return EDOESNTEXIST;
+    }
+
+    process_t *process = kernel_get_process(recipient_pid);
+    if(process == NULL)
+    {
+        return EEXITED;
+    }
+
+    message_t *buffer = kmalloc(sizeof(message_t));
+    if(buffer == NULL)
+    {
+        return ENOMEM;
+    }
+    memcpy(buffer, message.ptr, sizeof(message_t));
+    buffer->sender = kernel_current_pid();
+
+    address_space_switch(process->address_space);
+    int status = process_queue_message(process, buffer);
+    address_space_switch(kernel_get_active_process()->address_space);
+    if(status == ENOMEM)
+    {
+        kfree(buffer);
+        kernel_terminate_process(recipient_pid);
+        return EEXITED;
+    }
+    else
+    {
+        return ENONE;
+    }
 }
 
 int syscall_receive(syscall_arg_t buffer, syscall_arg_t flags)
@@ -163,8 +201,21 @@ int syscall_receive(syscall_arg_t buffer, syscall_arg_t flags)
 
 int syscall_create_object(void *location, size_t size, int flags)
 {
-    
-    return ENOSYSCALL;
+    shared_object_t *object = create_shared_object(size, flags);
+    if(object == NULL)
+    {
+        return ENOMEM;
+    }
+
+    if(map_region(location, object->phys_addr, object->size, object->access_flags))
+    {
+        destroy_shared_object(object);
+        return ENOMEM;
+    }
+
+    object->refcount++;
+    process_store_object(kernel_get_active_process(), 0, location);
+    return ENONE;
 }
 
 int syscall_aquire_object(oid_t id, void *location)

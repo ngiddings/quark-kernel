@@ -42,9 +42,9 @@ static inline int map_anon(void *addr, size_t length, long flags)
  * @param length 
  * @return 
  */
-static inline int unmap_anon(void *addr, size_t length)
+static inline int unmap_anon(void *addr)
 {
-    return _do_syscall(SYSCALL_UNMAP_ANON, addr, length);
+    return _do_syscall(SYSCALL_UNMAP_ANON, addr);
 }
 
 /**

@@ -1,0 +1,28 @@
+{
+    "files.exclude": {
+        "**/*.o": true,
+        "**/ar-lib": true,
+        "**/Makefile": true,
+        "**/*.in": true,
+        "**/stamp-h1": true,
+        "**/*.a": true,
+        "aclocal.m4": true,
+        "compile": true,
+        "config.log": true,
+        "config.status": true,
+        "configure*": true,
+        "depcomp": true,
+        "install-sh": true,
+        "missing": true,
+        "**/.deps": true,
+        "autom4te.cache": true,
+        "**/quark-kernel": true
+    },
+    "C_Cpp.default.cStandard": "c11",
+    "files.associations": {
+        "memmap.h": "c",
+        "pid.h": "c",
+        "sighandler.h": "c",
+        "string.h": "c"
+    }
+}

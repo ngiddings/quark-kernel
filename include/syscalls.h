@@ -22,7 +22,6 @@ struct syscall_t
 {
     bool defined;
     int arg_count;
-    int process_id;
     union
     {
         syscall_ptr_0_t func_ptr_0;
@@ -47,7 +46,7 @@ int syscall_map_anon(syscall_arg_t location, syscall_arg_t length, syscall_arg_t
 /**
  * 
  */
-int syscall_unmap_anon(syscall_arg_t location, syscall_arg_t length);
+int syscall_unmap_anon(syscall_arg_t location);
 
 /**
  * 

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "sharedobject.h"
 #include "platform/paging.h"
 #include "types/physaddr.h"
 #include "types/status.h"
@@ -101,6 +102,15 @@ physaddr_t current_address_space();
  * @param flags
  */
 error_t map_region(void *page, physaddr_t frame, size_t size, int flags);
+
+/**
+ * @brief Maps a shared object into virtual memory.
+ * 
+ * @param location 
+ * @param object 
+ * @return 
+ */
+error_t map_object(void *location, shared_object_t *object);
 
 /**
  * @brief Unmaps a region in virtual memory. All pages which contain some part

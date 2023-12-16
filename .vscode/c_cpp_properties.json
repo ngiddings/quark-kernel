@@ -1,0 +1,45 @@
+{
+    "configurations": [
+        {
+            "name": "Linux",
+            "includePath": [
+                "${workspaceFolder}/**",
+                "~/.quark/include"
+            ],
+            "defines": [],
+            "compilerPath": "/opt/cross/bin/i686-elf-gcc",
+            "cStandard": "c11",
+            "cppStandard": "c++11",
+            "intelliSenseMode": "linux-gcc-x86",
+            "compilerArgs": [
+                "-ffreestanding",
+                "-nostdlib"
+            ]
+        },
+        {
+            "name": "i686-cross",
+            "includePath": [
+                "/home/nathan/Documents/projects/quark-os/quark-kernel/**",
+                "/opt/quark-os/rootfs/include/",
+                "${workspaceFolder}/include"
+            ],
+            "defines": [],
+            "compilerPath": "/opt/cross/bin/i686-elf-gcc",
+            "cppStandard": "c++14",
+            "intelliSenseMode": "linux-gcc-x86",
+            "compilerArgs": [
+                "-ffreestanding ",
+                "-nostdlib"
+            ],
+            "cStandard": "c11",
+            "mergeConfigurations": false,
+            "browse": {
+                "path": [
+                    "${workspaceFolder}/**"
+                ],
+                "limitSymbolsToIncludedHeaders": true
+            }
+        }
+    ],
+    "version": 4
+}

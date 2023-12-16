@@ -6,6 +6,8 @@
 #include "mmgr.h"
 #include "syscalls.h"
 #include "addressspace.h"
+#include "process.h"
+#include "types/message.h"
 #include "types/syscallid.h"
 #include "types/status.h"
 #include "types/pid.h"
@@ -45,14 +47,11 @@ struct boot_info_t
     struct module_t modules[MODULE_LIMIT];
 };
 
-struct message_t
-{
-    pid_t sender;
-    unsigned long code;
-    unsigned long args[6];
-};
-
 void kernel_initialize(struct boot_info_t *boot_info);
+
+process_t *kernel_get_process(pid_t pid);
+
+process_t *kernel_get_active_process();
 
 error_t kernel_set_syscall(int id, int arg_count, void *func_ptr);
 
@@ -70,6 +69,8 @@ pid_t kernel_spawn_process(void *program_entry, int priority, address_space_t *a
 
 struct process_context_t *kernel_advance_scheduler();
 
+void kernel_schedule_process(process_t *process);
+
 error_t kernel_terminate_process(pid_t process_id);
 
 error_t kernel_create_port(unsigned long id);
@@ -77,10 +78,6 @@ error_t kernel_create_port(unsigned long id);
 error_t kernel_remove_port(unsigned long id);
 
 pid_t kernel_get_port_owner(unsigned long id);
-
-error_t kernel_send_message(unsigned long recipient, struct message_t *message);
-
-error_t kernel_queue_message(unsigned long recipient, struct message_t *message);
 
 int kernel_receive_message(struct message_t *buffer, int flags);
 

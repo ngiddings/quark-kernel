@@ -11,6 +11,10 @@ typedef struct address_space_t
 
 address_space_t *address_space_construct();
 
+void address_space_switch(address_space_t *address_space);
 
+address_space_t *address_space_release(address_space_t *address_space);
+
+void address_space_destroy(address_space_t *address_space);
 
 #endif

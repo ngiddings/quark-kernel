@@ -36,22 +36,6 @@ void *syscall_table[] = {
     (void*)syscall_signal_raise
 };
 
-struct shared_object_t
-{
-    physaddr_t phys_addr;
-    size_t size;
-    unsigned long access_flags;
-    unsigned long refcount;
-    struct avltree_t *users;
-};
-
-struct shared_object_mapping_t
-{
-    pid_t pid;
-    oid_t oid;
-    void *virt_addr;
-};
-
 struct port_t
 {
     unsigned long id;
@@ -120,7 +104,7 @@ void kernel_initialize(struct boot_info_t *boot_info)
     memset(kernel.syscall_table, 0, sizeof(struct syscall_t) * MAX_SYSCALL_ID);
     kernel_set_syscall(SYSCALL_TEST, 1, test_syscall);
     kernel_set_syscall(SYSCALL_MAP_ANON, 3, syscall_map_anon);
-    kernel_set_syscall(SYSCALL_UNMAP_ANON, 2, syscall_unmap_anon);
+    kernel_set_syscall(SYSCALL_UNMAP_ANON, 1, syscall_unmap_anon);
     kernel_set_syscall(SYSCALL_MAP_PHYS, 3, syscall_map_physical);
     kernel_set_syscall(SYSCALL_UNMAP_PHYS, 2, syscall_unmap_physical);
     kernel_set_syscall(SYSCALL_OPEN_PORT, 1, syscall_open_port);
@@ -152,6 +136,16 @@ void kernel_initialize(struct boot_info_t *boot_info)
 
     irq_enable();
     load_context(kernel_advance_scheduler());
+}
+
+process_t *kernel_get_process(pid_t pid)
+{
+    return avl_get(kernel.process_table, pid);
+}
+
+process_t *kernel_get_active_process()
+{
+    return kernel.active_process;
 }
 
 error_t kernel_set_syscall(int id, int arg_count, void *func_ptr)
@@ -216,7 +210,7 @@ error_t kernel_load_module(struct module_t *module)
     if(module_address_space == NULL) {
         kernel_panic("failed to create address space for module: out of memory");
     }
-    paging_load_address_space(module_address_space->page_table);
+    address_space_switch(module_address_space);
     void *const load_base = (void*)0x80000000;
     physaddr_t p = module->start & ~(page_size - 1);
     map_region(load_base, p, module->end - p, PAGE_RW);
@@ -308,11 +302,19 @@ struct process_context_t *kernel_advance_scheduler()
     kernel.active_process = priorityqueue_extract_min(&kernel.priority_queue);
     if(kernel.active_process != NULL)
     {
-        paging_load_address_space(kernel.active_process->address_space->page_table);
+        address_space_switch(kernel.active_process->address_space);
         printf("entering process %08x cr3=%08x ctx=%08x sched=%i.\n", kernel.active_process->pid, kernel.active_process->address_space->page_table, kernel.active_process->ctx, kernel.priority_queue.size);
         return kernel.active_process->ctx;
     }
     kernel_panic("no processes available to enter!");
+}
+
+void kernel_schedule_process(process_t *process)
+{
+    if(priorityqueue_insert(&kernel.priority_queue, process, process->priority))
+    {
+        kernel_panic("Failed to schedule process!");
+    }
 }
 
 error_t kernel_terminate_process(pid_t pid)
@@ -331,12 +333,6 @@ error_t kernel_terminate_process(pid_t pid)
     for(struct message_t *msg = queue_get_next(&process->message_queue); msg != NULL; msg = queue_get_next(&process->message_queue))
     {
         kfree(msg);
-    }
-    for(struct process_t *sender = queue_get_next(&process->sending_queue); sender != NULL; sender = queue_get_next(&process->sending_queue))
-    {
-        sender->state = PROCESS_ACTIVE;
-        set_context_return(sender->ctx, EEXITED);
-        priorityqueue_insert(&kernel.priority_queue, sender, sender->priority);
     }
     kfree(process->ctx);
     kfree(process);
@@ -397,55 +393,6 @@ pid_t kernel_get_port_owner(unsigned long id)
     else
     {
         return port->owner_pid;
-    }
-}
-
-error_t kernel_send_message(unsigned long recipient, struct message_t *message)
-{
-    struct process_t *dest = avl_get(kernel.process_table, recipient);
-    if(dest == NULL)
-    {
-        return EDOESNTEXIST;
-    }
-    else if(dest->message_buffer != NULL && dest->state == PROCESS_REQUESTING)
-    {
-        printf("Sending message directly from %i to %i\n", kernel.active_process->pid, dest->pid);
-        struct message_t kernel_buffer;
-        memcpy(&kernel_buffer, message, sizeof(struct message_t));
-        kernel_buffer.sender = kernel.active_process->pid;
-        paging_load_address_space(dest->address_space->page_table);
-        memcpy(dest->message_buffer, &kernel_buffer, sizeof(struct message_t));
-        paging_load_address_space(kernel.active_process->address_space->page_table);
-        dest->message_buffer = NULL;
-        dest->state = PROCESS_ACTIVE;
-        set_context_return(dest->ctx, ENONE);
-        priorityqueue_insert(&kernel.priority_queue, dest, dest->priority);
-        return ENONE;
-    }
-    else
-    {
-        return EBUSY;
-    }
-}
-
-error_t kernel_queue_message(unsigned long recipient, struct message_t *message)
-{
-    struct process_t *dest = avl_get(kernel.process_table, recipient);
-    if(dest != NULL)
-    {
-        printf("Queueing message from %i to %i\n", kernel.active_process->pid, dest->pid);
-        struct message_t *queued_msg = kmalloc(sizeof(struct message_t));
-        if(queued_msg == NULL)
-        {
-            return ENOMEM;
-        }
-        memcpy(queued_msg, message, sizeof(struct message_t));
-        queue_insert(&dest->message_queue, queued_msg);
-        return ENONE;
-    }
-    else
-    {
-        return EDOESNTEXIST;
     }
 }
 
@@ -512,7 +459,7 @@ error_t kernel_execute_interrupt_handler(unsigned long interrupt)
         return EDOESNTEXIST;
     }
 
-    paging_load_address_space(process->address_space->page_table);
+    address_space_switch(process->address_space);
 
     struct signal_context_t siginfo = {
         .signal_id = interrupt
@@ -527,7 +474,7 @@ error_t kernel_execute_interrupt_handler(unsigned long interrupt)
         priorityqueue_insert(&kernel.priority_queue, process, process->priority);
     }
 
-    paging_load_address_space(kernel.active_process->address_space->page_table);
+    address_space_switch(kernel.active_process->address_space);
 
     return ENONE;
 }
@@ -564,7 +511,6 @@ error_t kernel_create_object(size_t size, unsigned long flags, oid_t *id)
     obj->size = size;
     obj->access_flags = flags;
     obj->refcount = 0;
-    obj->users = NULL;
     kernel.object_table = avl_insert(kernel.object_table, kernel.next_oid, obj);
     *id = kernel.next_oid;
     kernel.next_oid++;

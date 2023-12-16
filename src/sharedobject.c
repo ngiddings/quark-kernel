@@ -22,7 +22,6 @@ struct shared_object *create_shared_object(size_t size, unsigned long flags)
     obj->size = size;
     obj->access_flags = flags;
     obj->refcount = 0;
-    obj->users = NULL;
     return obj;
 }
 
@@ -31,7 +30,6 @@ void destroy_shared_object(struct shared_object_t *obj)
     if(obj != NULL)
     {
         free_pages(obj->phys_addr);
-        avl_clear(obj->users);
         kfree(obj);
     }
 }
